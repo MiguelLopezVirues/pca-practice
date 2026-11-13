@@ -133,8 +133,10 @@ def _pyodide_from_cache(route):
     local = CACHE / url.split("://", 1)[1].split("?")[0]
     if not local.exists():
         local.parent.mkdir(parents=True, exist_ok=True)
-        with urllib.request.urlopen(url, timeout=120) as resp, open(local, "wb") as out:
+        part = local.with_suffix(local.suffix + ".part")
+        with urllib.request.urlopen(url, timeout=600) as resp, open(part, "wb") as out:
             shutil.copyfileobj(resp, out)
+        part.replace(local)
     route.fulfill(path=str(local), headers={"Content-Type": _TYPES.get(local.suffix, "application/octet-stream"),
                                             "Access-Control-Allow-Origin": "*"})
 
@@ -165,7 +167,10 @@ def open_page(context, origin, repo, token="good-token"):
     """Open the page; enter the token if the form shows; wait until it has settled."""
     page = context.new_page()
     page.goto(page_url(origin, repo))
-    page.wait_for_selector("#status", state="attached", timeout=10_000)
+    page.wait_for_function(
+        "() => { const s = document.querySelector('#status'); "
+        "return s && s.dataset.state !== 'loading' || !document.querySelector('#token-form')?.hidden; }",
+        timeout=120_000)
     if token is not None and page.locator("#token-form").is_visible():
         page.fill("#token", token)
         page.click("#token-save")

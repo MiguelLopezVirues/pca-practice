@@ -1,0 +1,12 @@
+body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; max-width: 40rem; margin-inline: auto; line-height: 1.45; }
+header { display: flex; justify-content: space-between; font-size: .9rem; color: #555; margin-bottom: 1rem; }
+#status[data-state="offline"], #status[data-state="token-expired"], #status[data-state="error"] { color: #b00020; }
+#card-front { font-size: 1.2rem; white-space: pre-wrap; }
+#card-back { white-space: pre-wrap; border-top: 1px solid #ccc; padding-top: .75rem; }
+button { font-size: 1.05rem; padding: .7rem 1rem; border-radius: .5rem; border: 1px solid #888; background: #f4f4f4; }
+#reveal { width: 100%; }
+#ratings { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-top: 1rem; }
+#rate-3 { background: #e6f0ff; border-color: #2d6cdf; }
+#token-form { display: grid; gap: .5rem; }
+#token-form[hidden], [hidden] { display: none !important; }
+input { font-size: 1rem; padding: .6rem; }

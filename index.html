@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self'">
+<title>PCA practice</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <span id="status" data-state="loading">Loading…</span>
+  <span id="pending" data-count="0"></span>
+</header>
+
+<form id="token-form" hidden>
+  <label for="token">GitHub token for the study repository</label>
+  <input id="token" type="password" autocomplete="off" spellcheck="false">
+  <button id="token-save" type="submit">Save</button>
+</form>
+
+<main id="card" hidden>
+  <p id="card-front"></p>
+  <button id="reveal" type="button">Show answer</button>
+  <p id="card-back" hidden></p>
+  <div id="ratings" hidden>
+    <button id="rate-1" type="button">Again</button>
+    <button id="rate-2" type="button">Hard</button>
+    <button id="rate-3" type="button">Good</button>
+    <button id="rate-4" type="button">Easy</button>
+  </div>
+</main>
+
+<p id="done" hidden>Nothing due now.</p>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -33,6 +33,19 @@ def front_of(files, item_id):
     return items_by_id(files)[item_id]["card"]["front"]
 
 
+def same_state(actual: dict, expected: dict):
+    """Engine files equal; in state.json the FSRS card ids are ignored (py-fsrs stamps them with the wall clock)."""
+    for path, data in expected.items():
+        if path.endswith("state.json"):
+            a, e = json.loads(actual[path]), json.loads(data)
+            for s in (a, e):
+                for card in s["cards"].values():
+                    card.pop("card_id", None)
+            assert a == e, path
+        else:
+            assert actual[path] == data, path
+
+
 # ---------- opening ----------
 def test_first_open_asks_for_token_and_calls_nothing(context, page_origin, repo):
     page = context.new_page()
@@ -63,8 +76,7 @@ def test_rating_saves_one_commit_that_matches_the_desktop_engine(context, page_o
     assert changed <= STATE_FILES
     assert {STATE + "answers.jsonl", STATE + "state.json", STATE + "reviews.tsv"} <= changed
     expected = desktop_apply(seed, [("record", first, 3, T0)], tmp_path)
-    for path, data in expected.items():
-        assert repo.files()[path] == data, path
+    same_state(repo.files(), expected)
 
 
 def test_each_answer_is_logged_once_with_an_id(context, page_origin, repo, tmp_path):
@@ -102,8 +114,7 @@ def test_rejected_commit_reloads_and_applies_the_answer_again(context, page_orig
     assert messages[-2] == "desktop session"
     assert len(answers(repo)) == 1
     expected = desktop_apply(seed, [("record", other, 3, T0), ("record", phone_item, 3, T0)], tmp_path)
-    for path, data in expected.items():
-        assert repo.files()[path] == data, path
+    same_state(repo.files(), expected)
 
 
 def test_offline_answer_is_kept_and_sent_at_next_open(context, page_origin, repo):
