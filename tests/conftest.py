@@ -185,7 +185,13 @@ def settle(page, timeout=120_000):
     return page.locator("#status").get_attribute("data-state")
 
 
+# the two-step self-grading: rating -> buttons clicked after revealing
+STEPS = {1: ["#know-no"], 2: ["#know-yes", "#came-effort"], 3: ["#know-yes", "#came-moment"],
+         4: ["#know-yes", "#came-instantly"]}
+
+
 def rate(page, rating):
     page.click("#reveal")
-    page.click(f"#rate-{rating}")
+    for selector in STEPS[rating]:
+        page.click(selector)
     return settle(page)

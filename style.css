@@ -5,8 +5,14 @@ header { display: flex; justify-content: space-between; font-size: .9rem; color:
 #card-back { white-space: pre-wrap; border-top: 1px solid #ccc; padding-top: .75rem; }
 button { font-size: 1.05rem; padding: .7rem 1rem; border-radius: .5rem; border: 1px solid #888; background: #f4f4f4; }
 #reveal { width: 100%; }
-#ratings { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-top: 1rem; }
-#rate-3 { background: #e6f0ff; border-color: #2d6cdf; }
+#ratings { margin-top: 1rem; }
+.ask { font-weight: 600; margin: .75rem 0 .4rem; }
+.row { display: grid; gap: .5rem; }
+.row.two { grid-template-columns: 1fr 1fr; }
+.row.three { grid-template-columns: 1fr 1fr 1fr; }
+#know-yes, #came-moment { background: #e6f0ff; border-color: #2d6cdf; }
+#rules { margin-top: 1rem; font-size: .9rem; color: #444; }
+#rules ul { padding-left: 1.2rem; margin: .4rem 0; }
 #token-form { display: grid; gap: .5rem; }
 #token-form[hidden], [hidden] { display: none !important; }
 input { font-size: 1rem; padding: .6rem; }

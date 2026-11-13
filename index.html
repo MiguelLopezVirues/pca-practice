@@ -24,10 +24,30 @@
   <button id="reveal" type="button">Show answer</button>
   <p id="card-back" hidden></p>
   <div id="ratings" hidden>
-    <button id="rate-1" type="button">Again</button>
-    <button id="rate-2" type="button">Hard</button>
-    <button id="rate-3" type="button">Good</button>
-    <button id="rate-4" type="button">Easy</button>
+    <p class="ask">Did you know it?</p>
+    <div class="row two">
+      <button id="know-no" type="button">No</button>
+      <button id="know-yes" type="button">Yes</button>
+    </div>
+    <div id="came" hidden>
+      <p class="ask">How did it come?</p>
+      <div class="row three">
+        <button id="came-instantly" type="button">Instantly</button>
+        <button id="came-moment" type="button">After a moment</button>
+        <button id="came-effort" type="button">With effort</button>
+      </div>
+    </div>
+    <details id="rules" open>
+      <summary>How to rate</summary>
+      <ul>
+        <li>Say or think your answer <em>before</em> revealing.</li>
+        <li><strong>No</strong>: nothing came, it was wrong, half right, or you only recognised it after seeing the back.</li>
+        <li><strong>Instantly</strong>: at once (about two seconds), you would bet on it.</li>
+        <li><strong>After a moment</strong>: a few seconds, and sure once it came.</li>
+        <li><strong>With effort</strong>: you hesitated between two answers, rebuilt it by reasoning, took about ten seconds or more, or got it right without being sure.</li>
+        <li>Rate this answer only, not how you feel about the topic.</li>
+      </ul>
+    </details>
   </div>
 </main>
 

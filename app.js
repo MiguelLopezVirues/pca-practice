@@ -84,6 +84,7 @@ function showCard() {
   const due = engine.flashcards(new Date().toISOString());
   $("card-back").hidden = true;
   $("ratings").hidden = true;
+  $("came").hidden = true;
   $("reveal").hidden = false;
   if (!due.length) {
     current = null;
@@ -151,7 +152,12 @@ $("reveal").addEventListener("click", () => {
   $("ratings").hidden = false;
   $("reveal").hidden = true;
 });
-for (const n of [1, 2, 3, 4]) $(`rate-${n}`).addEventListener("click", () => rate(n));
+// "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
+$("know-no").addEventListener("click", () => rate(1));
+$("know-yes").addEventListener("click", () => { $("came").hidden = false; });
+$("came-effort").addEventListener("click", () => rate(2));
+$("came-moment").addEventListener("click", () => rate(3));
+$("came-instantly").addEventListener("click", () => rate(4));
 $("token-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const token = $("token").value.trim();

@@ -6,7 +6,9 @@ The page contract these tests rely on:
 - No token stored: `#token-form` with `#token` and `#token-save`; no API request before a token exists.
 - `#status[data-state]`: loading | saving | ready | done | offline | token-expired | error.
 - `#pending[data-count]`: answers kept on the phone and not yet saved to GitHub.
-- A card: `#card-front`, `#reveal`, `#card-back` (shown after reveal), `#rate-1`..`#rate-4` (Again..Easy).
+- A card: `#card-front`, `#reveal`, `#card-back` (shown after reveal), then two steps: `#know-no` / `#know-yes`
+  ("Did you know it?"), and after yes `#came-instantly` / `#came-moment` / `#came-effort` ("How did it come?"),
+  giving Again / Easy / Good / Hard. `#rules` explains the two steps.
 - Each answer: one commit on main touching only files under pilot/practice/state/, including
   answers.jsonl (one JSON line per answer: id, item, rating, time) and the engine's own state files.
 """
@@ -87,6 +89,20 @@ def test_each_answer_is_logged_once_with_an_id(context, page_origin, repo, tmp_p
     assert len(log) == 1
     assert log[0]["item"] == first and log[0]["rating"] == 3 and log[0]["id"] and log[0]["time"]
     assert page.locator("#pending").get_attribute("data-count") == "0"
+
+
+def test_two_steps_give_again_hard_good_easy(context, page_origin, repo):
+    page = open_page(context, page_origin, repo)
+    page.click("#reveal")
+    assert page.locator("#rules").is_visible()
+    assert not page.locator("#came-instantly").is_visible()
+    page.click("#know-yes")
+    assert page.locator("#came-instantly").is_visible()
+    page.click("#came-effort")
+    settle(page)
+    for rating in (1, 3, 4):
+        rate(page, rating)
+    assert [a["rating"] for a in answers(repo)] == [2, 1, 3, 4]
 
 
 def test_only_flashcards_are_shown(context, page_origin, repo):
