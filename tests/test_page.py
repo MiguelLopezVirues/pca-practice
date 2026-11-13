@@ -6,15 +6,18 @@ The page contract these tests rely on:
 - No token stored: `#token-form` with `#token` and `#token-save`; no API request before a token exists.
 - `#status[data-state]`: loading | saving | ready | done | offline | token-expired | error.
 - `#pending[data-count]`: answers kept on the phone and not yet saved to GitHub.
-- A card: `#card-front`, `#reveal`, `#card-back` (shown after reveal), then two steps: `#know-no` / `#know-yes`
+- A card: `#card-front` (one of the card's `fronts`, in turn: the n-th review shows phrasing n, cycling; a card
+  with a single `front` shows it), `#reveal`, `#card-back` (shown after reveal), then two steps: `#know-no` / `#know-yes`
   ("Did you know it?"), and after yes `#came-instantly` / `#came-moment` / `#came-effort` ("How did it come?"),
   giving Again / Easy / Good / Hard. `#rules` explains the two steps.
 - Each answer: one commit on main touching only files under pilot/practice/state/, including
-  answers.jsonl (one JSON line per answer: id, item, rating, time) and the engine's own state files.
+  answers.jsonl (one JSON line per answer: id, item, rating, time, prompt) and the engine's own state files;
+  the engine logs the phrasing shown as the prompt id `card:<n>`.
 """
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 
 from conftest import (FIRST_TOPIC, STATE, STATE_FILES, T0, desktop_apply, desktop_queue, items_by_id, open_page,
                       page_url, rate, seed_files, settle)
@@ -31,8 +34,30 @@ def answers(repo):
     return [json.loads(line) for line in data.decode().splitlines() if line.strip()]
 
 
+def fronts_of(item):
+    return item["card"].get("fronts") or [item["card"]["front"]]
+
+
 def front_of(files, item_id):
-    return items_by_id(files)[item_id]["card"]["front"]
+    return fronts_of(items_by_id(files)[item_id])[0]
+
+
+def serve_files(files):
+    r = FakeRepo()
+    r.seed(files)
+    server = serve(r)
+    r.api = f"http://127.0.0.1:{server.server_address[1]}"
+    return r, server
+
+
+def set_cards(files, change):
+    """Apply change(card dict, item id) to every flashcard in the item files."""
+    for path in [p for p in files if p.startswith("pilot/practice/items/")]:
+        items = json.loads(files[path])
+        for it in items:
+            if it["channel"] == "flashcard":
+                change(it["card"], it["id"])
+        files[path] = json.dumps(items).encode()
 
 
 def same_state(actual: dict, expected: dict):
@@ -107,13 +132,53 @@ def test_two_steps_give_again_hard_good_easy(context, page_origin, repo):
 
 def test_only_flashcards_are_shown(context, page_origin, repo):
     items = items_by_id(repo.files())
-    fronts = {it["card"]["front"].strip() for it in items.values() if it["channel"] == "flashcard"}
+    fronts = {f.strip() for it in items.values() if it["channel"] == "flashcard" for f in fronts_of(it)}
     page = open_page(context, page_origin, repo)
     for _ in range(4):
         if page.locator("#status").get_attribute("data-state") == "done":
             break
         assert page.locator("#card-front").inner_text().strip() in fronts
         rate(page, 3)
+
+
+# ---------- phrasings ----------
+def test_phrasings_turn_with_each_review_and_are_logged(context, page_origin, tmp_path):
+    """Every flashcard reviewed once before (Again, so due again): the page shows the second phrasing and logs card:2."""
+    def three(card, iid):
+        card.pop("front", None)
+        card["fronts"] = [f"A {iid}", f"B {iid}", f"C {iid}"]
+
+    files = seed_files(tmp_path)
+    set_cards(files, three)
+    cards = [i for i, it in items_by_id(files).items() if it["channel"] == "flashcard"]
+    files.update(desktop_apply(files, [("record", i, 1, T0 - timedelta(days=1), "card:1") for i in cards], tmp_path))
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r)
+        shown = page.locator("#card-front").inner_text().strip()
+        assert shown.startswith("B ")
+        rate(page, 3)
+        last = r.files()[STATE + "reviews.tsv"].decode().strip().splitlines()[-1].split("\t")
+        assert last[2] == shown[2:] and last[4] == "card:2"
+        assert answers(r)[-1]["prompt"] == "card:2"
+    finally:
+        server.shutdown()
+
+
+def test_card_with_a_single_front_still_works(context, page_origin, tmp_path):
+    def one(card, iid):
+        card["front"] = card.pop("fronts", [card.get("front")])[0]
+
+    files = seed_files(tmp_path, lambda f: set_cards(f, one))
+    first = flashcard_queue(files, T0, tmp_path)[0]
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r)
+        assert page.locator("#card-front").inner_text().strip() == front_of(files, first).strip()
+        rate(page, 3)
+        assert answers(r)[-1]["prompt"] == "card:1"
+    finally:
+        server.shutdown()
 
 
 # ---------- conflicts, network, token ----------
@@ -190,7 +255,8 @@ def test_card_text_is_shown_as_text_not_html(context, page_origin, tmp_path):
     first = flashcard_queue(files, T0, tmp_path)[0]
     path = f"pilot/practice/items/{first.split('.')[0]}.json"
     items = json.loads(files[path])
-    next(it for it in items if it["id"] == first)["card"]["front"] = evil
+    card = next(it for it in items if it["id"] == first)["card"]
+    card["front"], card["fronts"] = evil, [evil]
     files[path] = json.dumps(items).encode()
     r = FakeRepo()
     r.seed(files)

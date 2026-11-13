@@ -65,7 +65,8 @@ async function sync() {
     for (const a of todo) {
       engine.record(a);
       applied.add(a.id);
-      log += JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes }) + "\n";
+      log += JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes,
+        prompt: a.prompt || "card:1" }) + "\n";
     }
     const message = todo.length === 1
       ? `practice: ${todo[0].item} rated ${todo[0].rating} (phone)`
@@ -93,8 +94,10 @@ function showCard() {
     return "done";
   }
   const item = engine.item(due[0]);
-  current = { id: item.id, shown: Date.now() };
-  $("card-front").textContent = item.card.front;
+  const fronts = item.card.fronts?.length ? item.card.fronts : [item.card.front];
+  const k = engine.reviewsOf(item.id) % fronts.length;
+  current = { id: item.id, shown: Date.now(), prompt: `card:${k + 1}` };
+  $("card-front").textContent = fronts[k];
   $("card-back").textContent = item.card.back;
   $("card").hidden = false;
   $("done").hidden = true;
@@ -125,7 +128,7 @@ async function rate(rating) {
   if (!current) return;
   setState("saving");
   const answer = {
-    id: crypto.randomUUID(), item: current.id, rating,
+    id: crypto.randomUUID(), item: current.id, rating, prompt: current.prompt,
     time: new Date().toISOString(), minutes: (Date.now() - current.shown) / 60000,
   };
   current = null;

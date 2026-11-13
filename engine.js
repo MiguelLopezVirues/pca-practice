@@ -27,8 +27,11 @@ def flashcards(now):
 def item(item_id):
     return json.dumps(_eng.items[item_id])
 
-def record(item_id, rating, now, minutes):
-    _eng.record(item_id, int(rating), datetime.fromisoformat(now), prompt_id="card", minutes=round(float(minutes), 2))
+def reviews_of(item_id):
+    return sum(1 for r in _eng.reviews if r["item"] == item_id)
+
+def record(item_id, rating, now, minutes, prompt):
+    _eng.record(item_id, int(rating), datetime.fromisoformat(now), prompt_id=prompt, minutes=round(float(minutes), 2))
     _eng.save("${PRACTICE}")
 `;
 
@@ -71,8 +74,12 @@ export class Engine {
     return JSON.parse(this.py.globals.get("item")(id));
   }
 
+  reviewsOf(id) {
+    return this.py.globals.get("reviews_of")(id);
+  }
+
   record(answer) {
-    this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes);
+    this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1");
   }
 
   stateFiles() {

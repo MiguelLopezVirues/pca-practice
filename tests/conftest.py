@@ -50,7 +50,7 @@ def _read_back(root: Path) -> dict[str, bytes]:
 
 def desktop_apply(files: dict[str, bytes], steps, tmp: Path) -> dict[str, bytes]:
     """Apply steps with the CPython engine on a copy of `files`; return the state files it writes.
-    A step is ("read", topic, time) or ("record", item, rating, time)."""
+    A step is ("read", topic, time) or ("record", item, rating, time[, prompt id]); the prompt id defaults to card:1."""
     root = tmp / f"ref{len(list(tmp.glob('ref*')))}"
     _materialize(files, root)
     mod = _engine_module(root)
@@ -60,7 +60,7 @@ def desktop_apply(files: dict[str, bytes], steps, tmp: Path) -> dict[str, bytes]
         if step[0] == "read":
             eng.mark_read(step[1], step[2])
         else:
-            eng.record(step[1], step[2], step[3], prompt_id="card")
+            eng.record(step[1], step[2], step[3], prompt_id=step[4] if len(step) > 4 else "card:1")
     eng.save(practice)
     return _read_back(root)
 
