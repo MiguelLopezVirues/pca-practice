@@ -18,3 +18,5 @@ button { font-size: 1.05rem; padding: .7rem 1rem; border-radius: .5rem; border: 
 input { font-size: 1rem; padding: .6rem; }
 #sync { font-size: .85rem; padding: .3rem .7rem; }
 #sync[data-state="offline"], #sync[data-state="token-expired"], #sync[data-state="error"] { color: #b00020; border-color: #b00020; }
+.flag { font-size:.8rem; padding:.3rem .7rem; background:none; border:1px solid #bbb; border-radius:1rem; margin-bottom:.6rem; }
+.flag[aria-pressed="true"] { border-color:#E69F00; color:#8a5a00; font-weight:600; }

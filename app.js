@@ -60,7 +60,7 @@ function answerIds(text) {
 
 function logLine(a) {
   return JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes,
-    prompt: a.prompt || "card:1" }) + "\n";
+    prompt: a.prompt || "card:1", ...(a.flags ? { flags: a.flags } : {}) }) + "\n";
 }
 
 // Run the engine on a repository version, then apply the answers still on the phone on top of it.
@@ -178,6 +178,7 @@ function showCard() {
   const fronts = item.card.fronts?.length ? item.card.fronts : [item.card.front];
   const k = engine.reviewsOf(item.id) % fronts.length;
   current = { id: item.id, shown: Date.now(), prompt: `card:${k + 1}` };
+  $("flag-heavy").setAttribute("aria-pressed", "false");
   $("card-front").textContent = fronts[k];
   $("card-back").textContent = item.card.back;
   $("card-points").replaceChildren(...(item.must || []).map((m) => {
@@ -204,6 +205,7 @@ async function rate(rating) {
     id: crypto.randomUUID(), item: current.id, rating, prompt: current.prompt,
     time: new Date().toISOString(), minutes: (Date.now() - current.shown) / 60000,
   };
+  if ($("flag-heavy").getAttribute("aria-pressed") === "true") answer.flags = ["too-much"];
   current = null;
   await outboxPut(answer);
   engine.record(answer);
@@ -222,6 +224,10 @@ $("reveal").addEventListener("click", () => {
 });
 // "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
 $("know-no").addEventListener("click", () => rate(1));
+$("flag-heavy").addEventListener("click", () => {
+  const on = $("flag-heavy").getAttribute("aria-pressed") !== "true";
+  $("flag-heavy").setAttribute("aria-pressed", String(on));
+});
 $("know-yes").addEventListener("click", () => { $("came").hidden = false; });
 $("came-effort").addEventListener("click", () => rate(2));
 $("came-moment").addEventListener("click", () => rate(3));
