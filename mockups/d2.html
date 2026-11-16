@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>Mockup D · refined</title>
+<style>
+/* One accent (Okabe-Ito blue). Other Okabe-Ito colours only as soft tints on the rating buttons and as small
+   status dots, always next to an icon or a word. One radius scale, one icon set, one shadow. */
+:root {
+  --bg:#f6f7f9; --surface:#fff; --raised:#fff; --text:#1c2230; --muted:#6b7385; --faint:#9aa1b0; --line:#e6e8ee; --soft:#f0f2f6;
+  --accent:#0072B2; --accent-soft:#e6f1f8;
+  --sky:#56B4E9; --orange:#E69F00; --verm:#D55E00; --purple:#CC79A7;
+  --r:16px; --r-sm:12px; --shadow:0 1px 2px rgba(20,30,60,.04), 0 6px 20px rgba(20,30,60,.06);
+}
+[data-theme="dark"] {
+  --bg:#0f1217; --surface:#171b22; --raised:#1c212a; --text:#e8ebf2; --muted:#9aa2b3; --faint:#6f7789; --line:#272d38; --soft:#20252f;
+  --accent:#4aa3d9; --accent-soft:#16283a; --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { max-width:30rem; margin:auto; }
+main { padding:calc(env(safe-area-inset-top) + 1.2rem) 1.1rem 6.5rem; }
+svg.i { width:1.25rem; height:1.25rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+h1 { font-size:1.45rem; font-weight:650; letter-spacing:-.01em; margin:0 0 1rem; }
+.label { font-size:.75rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin:1.6rem .2rem .6rem; }
+.surface { background:var(--surface); border-radius:var(--r); box-shadow:var(--shadow); }
+.btn { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; border:0; border-radius:var(--r-sm); padding:.95rem 1rem; font:600 1rem system-ui; cursor:pointer; }
+.btn.primary { background:var(--accent); color:#fff; }
+.btn.quiet { background:var(--soft); color:var(--text); }
+.btn.plain { background:none; color:var(--muted); font-weight:500; padding:.6rem; }
+/* tab bar */
+.tabs { position:fixed; bottom:0; left:0; right:0; max-width:30rem; margin:auto; display:grid; grid-template-columns:repeat(4,1fr);
+  background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:blur(12px); border-top:1px solid var(--line);
+  padding:.45rem 0 calc(.45rem + env(safe-area-inset-bottom)); }
+.tabs button { background:none; border:0; color:var(--faint); font:500 .7rem system-ui; display:grid; justify-items:center; gap:.2rem; }
+.tabs button.on { color:var(--accent); }
+body.practising .tabs { display:none; } body.practising main { padding-bottom:1rem; }
+/* today */
+.hero { padding:1.2rem; display:flex; gap:1.2rem; align-items:center; }
+.ring { width:5.6rem; height:5.6rem; flex:none; }
+.ring .n { font:650 1.5rem system-ui; fill:var(--text); } .ring .s { font:500 .55rem system-ui; fill:var(--muted); letter-spacing:.04em; }
+.hero h2 { margin:0 0 .2rem; font-size:1.05rem; font-weight:600; }
+.hero p { margin:0; color:var(--muted); font-size:.88rem; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); }
+.stats div { padding:.9rem .4rem; text-align:center; } .stats div + div { border-left:1px solid var(--line); }
+.stats b { display:block; font-size:1.3rem; font-weight:650; } .stats span { font-size:.75rem; color:var(--muted); display:inline-flex; align-items:center; gap:.3rem; }
+.dot { width:.5rem; height:.5rem; border-radius:50%; display:inline-block; flex:none; }
+.rows { overflow:hidden; } .rowi { display:flex; align-items:center; gap:.85rem; padding:.9rem 1rem; }
+.rowi + .rowi { border-top:1px solid var(--line); }
+.rowi .ic { width:2.1rem; height:2.1rem; border-radius:10px; background:var(--soft); color:var(--muted); display:grid; place-items:center; flex:none; }
+.rowi .ic.acc { background:var(--accent-soft); color:var(--accent); }
+.rowi .tx { flex:1; min-width:0; } .rowi .tx b { display:block; font-weight:600; font-size:.95rem; } .rowi .tx span { color:var(--muted); font-size:.82rem; }
+.rowi .tx p { margin:0; font-size:.92rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.chev { color:var(--faint); }
+.week { display:flex; justify-content:space-between; padding:.9rem 1.1rem; }
+.day { display:grid; justify-items:center; gap:.35rem; font-size:.72rem; color:var(--faint); }
+.day i { width:1.7rem; height:1.7rem; border-radius:50%; border:1.5px solid var(--line); display:grid; place-items:center; color:#fff; }
+.day i.on { background:var(--accent); border-color:var(--accent); }
+.day.today { color:var(--text); font-weight:600; } .day.today i:not(.on) { border-color:var(--accent); }
+/* cards list */
+.seg { display:flex; background:var(--soft); border-radius:var(--r-sm); padding:3px; }
+.seg button { flex:1; border:0; background:none; color:var(--muted); padding:.5rem; border-radius:9px; font:500 .85rem system-ui; }
+.seg button.on { background:var(--raised); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.08); font-weight:600; }
+.chips { display:flex; gap:.4rem; overflow-x:auto; padding:.8rem 0 .1rem; scrollbar-width:none; }
+.chips button { flex:none; display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--surface); color:var(--muted);
+  border-radius:999px; padding:.38rem .75rem; font:500 .82rem system-ui; }
+.chips button.on { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+.chips em { font-style:normal; color:var(--faint); font-size:.75rem; }
+.status { display:inline-flex; align-items:center; gap:.35rem; font-size:.75rem; color:var(--muted); white-space:nowrap; }
+/* review card */
+.top { display:flex; align-items:center; gap:.8rem; margin-bottom:1rem; }
+.iconbtn { background:none; border:0; color:var(--muted); padding:.25rem; display:grid; place-items:center; }
+.bar { flex:1; height:4px; background:var(--line); border-radius:999px; overflow:hidden; }
+.bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .4s; }
+.saved { font-size:.75rem; color:var(--muted); display:inline-flex; align-items:center; gap:.3rem; }
+.stage { perspective:1200px; }
+.card { display:grid; padding:1.5rem 1.35rem; min-height:20rem; transition:transform .45s cubic-bezier(.2,.7,.3,1); transform-style:preserve-3d; touch-action:pan-y; }
+.card .face { grid-area:1/1; backface-visibility:hidden; } .card .front { padding-bottom:2.4rem; position:relative; } .card .back { transform:rotateY(180deg); }
+.card.flipped { transform:rotateY(180deg); }
+.meta { display:flex; align-items:center; gap:.45rem; font-size:.78rem; color:var(--muted); margin-bottom:1rem; }
+.meta svg { width:1rem; height:1rem; }
+.q { font-size:1.2rem; line-height:1.5; } .q strong, .a strong, .pts strong { font-weight:650; color:var(--accent); }
+.hint { position:absolute; bottom:0; left:0; right:0; text-align:center; color:var(--faint); font-size:.8rem; }
+table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.2rem 0 1rem; }
+th, td { text-align:left; padding:.42rem .35rem; border-bottom:1px solid var(--line); } th { color:var(--faint); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; }
+.pts { border-top:1px solid var(--line); padding-top:.8rem; }
+.pts h4 { margin:0 0 .4rem; font-size:.82rem; color:var(--muted); font-weight:500; }
+.pts ul { list-style:none; margin:0; padding:0; }
+.pts li { display:flex; gap:.65rem; padding:.42rem 0; cursor:pointer; font-size:.95rem; }
+.pts li .box { width:1.2rem; height:1.2rem; margin-top:.15rem; border-radius:6px; border:1.5px solid var(--faint); display:grid; place-items:center; flex:none; color:#fff; }
+.pts li .box svg { width:.8rem; height:.8rem; stroke-width:3; opacity:0; }
+.pts li.on .box { background:var(--accent); border-color:var(--accent); } .pts li.on .box svg { opacity:1; }
+.actions { position:sticky; bottom:0; padding:1.2rem 0 calc(.6rem + env(safe-area-inset-bottom)); background:linear-gradient(transparent, var(--bg) 1rem); }
+.ask { text-align:center; color:var(--muted); font-size:.88rem; margin:0 0 .65rem; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; } .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; }
+.rate { border:1.5px solid transparent; border-radius:var(--r-sm); padding:.85rem .4rem; font:600 .95rem system-ui; display:grid; justify-items:center; gap:.25rem; cursor:pointer; }
+.rate small { font-weight:400; font-size:.72rem; color:var(--muted); }
+.rate.no { background:color-mix(in srgb, var(--verm) 11%, var(--surface)); color:var(--verm); }
+.rate.yes { background:var(--accent-soft); color:var(--accent); }
+.rate.easy { background:color-mix(in srgb, var(--sky) 16%, var(--surface)); color:color-mix(in srgb, var(--sky) 55%, var(--text)); }
+.rate.good { background:var(--accent-soft); color:var(--accent); }
+.rate.hard { background:color-mix(in srgb, var(--orange) 16%, var(--surface)); color:color-mix(in srgb, var(--orange) 60%, var(--text)); }
+.rate.suggest { border-color:currentColor; }
+.opts { display:grid; gap:.55rem; margin-top:1.1rem; }
+.opt { display:flex; gap:.8rem; align-items:center; text-align:left; border:1.5px solid var(--line); background:var(--surface); color:var(--text); border-radius:var(--r-sm); padding:.8rem .9rem; font:500 .97rem system-ui; }
+.opt .k { width:1.7rem; height:1.7rem; border-radius:50%; background:var(--soft); color:var(--muted); display:grid; place-items:center; font-size:.8rem; font-weight:600; flex:none; }
+.opt.right { border-color:var(--accent); } .opt.right .k { background:var(--accent); color:#fff; }
+.opt.wrong { border-color:var(--verm); border-style:dashed; } .opt.wrong .k { background:var(--verm); color:#fff; }
+.note { font-size:.85rem; color:var(--muted); margin:.2rem 0 0 2.5rem; } .note b { color:var(--verm); font-weight:600; }
+textarea { width:100%; min-height:5.2rem; border:1.5px solid var(--line); border-radius:var(--r-sm); padding:.8rem; font:1rem system-ui; background:var(--surface); color:var(--text); }
+.flag { display:inline-flex; align-items:center; gap:.35rem; margin:.4rem auto 0; background:none; border:0; color:var(--faint); font:500 .8rem system-ui; }
+.flag.on { color:var(--orange); }
+/* progress */
+.topic { padding:1rem 1.1rem; } .topic + .topic { border-top:1px solid var(--line); }
+.topic h3 { margin:0 0 .55rem; font-size:.95rem; font-weight:600; display:flex; justify-content:space-between; } .topic h3 span { font-weight:400; color:var(--muted); font-size:.8rem; }
+.split { display:flex; gap:3px; height:6px; } .split i { border-radius:999px; }
+.split .k { background:var(--accent); } .split .l { background:var(--accent); opacity:.4; } .split .n { background:var(--line); }
+.legend { display:flex; gap:1rem; font-size:.75rem; color:var(--muted); padding:.2rem .3rem 0; }
+.legend i { display:inline-block; width:.9rem; height:6px; border-radius:999px; margin-right:.35rem; vertical-align:2px; }
+.cols { display:flex; align-items:flex-end; gap:.6rem; height:6.5rem; padding:1rem 1.1rem .8rem; }
+.cols div { flex:1; display:grid; justify-items:center; gap:.35rem; font-size:.7rem; color:var(--faint); }
+.cols i { width:.6rem; border-radius:999px; background:var(--accent); }
+.big2 { display:grid; grid-template-columns:1fr 1fr; } .big2 div { padding:1rem 1.1rem; } .big2 div + div { border-left:1px solid var(--line); }
+.big2 b { display:block; font-size:1.5rem; font-weight:650; } .big2 span { font-size:.78rem; color:var(--muted); }
+/* overlay with a card as reviewed */
+.overlay { position:fixed; inset:0; background:var(--bg); max-width:30rem; margin:auto; padding:calc(env(safe-area-inset-top) + 1rem) 1.1rem 1rem; overflow:auto; transform:translateY(100%); transition:transform .3s; z-index:5; }
+.overlay.open { transform:none; }
+.banner { display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:var(--muted); background:var(--soft); border-radius:999px; padding:.35rem .8rem; }
+.switch { width:2.8rem; height:1.6rem; border-radius:999px; background:var(--accent); position:relative; flex:none; }
+.switch::after { content:""; position:absolute; right:3px; top:3px; width:1.25rem; height:1.25rem; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main id="main"></main>
+<nav class="tabs" id="tabs"></nav>
+<div class="overlay" id="overlay"></div>
+
+<script type="module">
+import { CARDS, rich, list, swipe, theme } from "./common.js";
+const $ = (id) => document.getElementById(id);
+const main = $("main");
+theme();
+
+// one icon set: 24-unit grid, 1.8 stroke
+const P = {
+  home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+  cards: "M7 4h11a2 2 0 0 1 2 2v11M4 8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z",
+  chart: "M4 20V11M10 20V5M16 20v-6M3 20h18",
+  gear: "M4 6h7M15 6h5M4 12h2M10 12h10M4 18h10M18 18h2M13 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+  check: "M5 12.5 10 17l9-10", x: "M6 6l12 12M18 6 6 18", zap: "M13 2 4 14h7l-1 8 9-12h-7z",
+  clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z", mount: "M3 20 9.5 8l4 7 2.5-4L21 20z",
+  card: "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 9h8M8 13h5",
+  choice: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
+  pen: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4", spark: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6",
+  right: "M9 6l6 6-6 6", close: "M6 6l12 12M18 6 6 18", flag: "M5 21V4h11l-1.5 4L16 12H5", eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4",
+  key: "M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z", cloud: "M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z",
+};
+const ic = (name, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24"><path d="${P[name]}"/></svg>`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+const TYPE = { card: ["card", "Self-graded"], choice: ["choice", "Choice + why"], open: ["pen", "Open · AI"] };
+const STATUS = { due: ["var(--orange)", "Due now"], learn: ["var(--purple)", "Learning"], new: ["var(--sky)", "New"], later: ["var(--line)", "In 3 days"], ai: ["var(--accent)", "Needs AI"] };
+const QUEUE = [
+  { t: "How networks move data", k: "card", s: "due", c: 0 },
+  { t: "How networks move data", k: "card", s: "learn", c: 1 },
+  { t: "How networks move data", k: "open", s: "ai", f: "Explain why a change inside one layer does not affect the others" },
+  { t: "How networks move data", k: "open", s: "ai", f: "Trace how headers are added going down the stack" },
+  { t: "Devices and services", k: "choice", s: "new", c: 2 },
+  { t: "Devices and services", k: "open", s: "ai", f: "Why can't a switch reach a host on another network?" },
+  { t: "Reliability and security", k: "card", s: "later", f: "Inside IPsec, which protocol encrypts and which only checks?" },
+];
+const s = { due: 12, done: 0, again: 0, ai: 8 };
+const statusEl = (k) => { const sp = el("span", "status"); const d = el("i", "dot"); d.style.background = STATUS[k][0]; sp.append(d, STATUS[k][1]); return sp; };
+
+$("tabs").innerHTML = [["today", "home", "Today"], ["cards", "cards", "Cards"], ["progress", "chart", "Progress"], ["settings", "gear", "Settings"]]
+  .map(([k, i, l]) => `<button data-tab="${k}">${ic(i)}${l}</button>`).join("");
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => tab(b.dataset.tab));
+function tab(name) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  document.body.classList.remove("practising");
+  ({ today, cards, progress, settings })[name]();
+}
+
+function ring(left, total) {
+  const r = 44, c = 2 * Math.PI * r, f = total ? 1 - left / total : 0;
+  return `<svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - f)}" transform="rotate(-90 50 50)"/>
+    <text class="n" x="50" y="53" text-anchor="middle">${left}</text><text class="s" x="50" y="68" text-anchor="middle">LEFT TODAY</text></svg>`;
+}
+
+function today() {
+  const left = s.due - s.done;
+  main.innerHTML = `<h1>Today</h1>
+    <section class="surface"><div class="hero">${ring(left, s.due)}<div><h2>${s.done ? "Keep going" : "Ready when you are"}</h2>
+      <p>About ${Math.max(1, Math.round(left * .4))} minutes of cards</p><p>34 days to the exam</p></div></div>
+      <div class="stats"><div><b>4</b><span><i class="dot" style="background:var(--orange)"></i>Due</span></div>
+      <div><b>13</b><span><i class="dot" style="background:var(--sky)"></i>New</span></div>
+      <div><b>${s.ai}</b><span><i class="dot" style="background:var(--accent)"></i>For AI</span></div></div></section>
+    <p></p><button class="btn primary" id="go">Start practice</button>
+    <div class="label">Waiting for you</div>
+    <section class="surface rows"><div class="rowi"><div class="ic acc">${ic("spark")}</div><div class="tx"><b>${s.ai} open questions</b><span>Explain, trace and cases need the grader</span></div><span class="chev">${ic("right")}</span></div>
+      <div class="rowi"><div class="ic">${ic("cards")}</div><div class="tx"><b>Next topic</b><span>Devices and services, after this one</span></div><span class="chev">${ic("right")}</span></div></section>
+    <div class="label">This week</div>
+    <section class="surface week">${["M", "T", "W", "T", "F", "S", "S"].map((d, n) => `<div class="day${n === 0 ? " today" : ""}"><i class="${n === 0 && s.done ? "on" : ""}">${n === 0 && s.done ? ic("check") : ""}</i>${d}</div>`).join("")}</section>`;
+  $("go").onclick = () => { i = 0; practise(); };
+}
+
+let groupBy = "topic", filter = "all";
+function cards() {
+  main.innerHTML = `<h1>Cards</h1><div class="seg" id="seg"><button data-g="topic">Topic</button><button data-g="k">Type</button><button data-g="s">Status</button></div>
+    <div class="chips" id="chips"></div><div id="groups"></div>`;
+  [...$("seg").children].forEach((b) => { b.classList.toggle("on", b.dataset.g === groupBy); b.onclick = () => { groupBy = b.dataset.g; cards(); }; });
+  const F = [["all", "All"], ["due", "Due"], ["new", "New"], ["learn", "Learning"], ["ai", "Needs AI"], ["later", "Later"]];
+  $("chips").replaceChildren(...F.map(([k, label]) => {
+    const b = el("button", filter === k ? "on" : "");
+    if (k !== "all") { const d = el("i", "dot"); d.style.background = STATUS[k][0]; b.append(d); }
+    b.append(label, el("em", "", String(QUEUE.filter((q) => k === "all" || q.s === k).length)));
+    b.onclick = () => { filter = k; cards(); }; return b;
+  }));
+  const groups = {};
+  QUEUE.filter((q) => filter === "all" || q.s === filter).forEach((q) => {
+    const key = groupBy === "topic" ? q.t : groupBy === "k" ? TYPE[q.k][1] : STATUS[q.s][1];
+    (groups[key] ??= []).push(q);
+  });
+  $("groups").replaceChildren(...Object.entries(groups).flatMap(([name, items]) => {
+    const sec = el("section", "surface rows");
+    items.forEach((q) => {
+      const row = el("div", "rowi"); row.innerHTML = `<div class="ic">${ic(TYPE[q.k][0])}</div>`;
+      const tx = el("div", "tx"); const p = el("p"); rich(p, q.c != null ? CARDS[q.c].front : q.f); p.replaceChildren(...p.firstChild.childNodes);
+      tx.append(p, statusEl(q.s)); row.append(tx); row.insertAdjacentHTML("beforeend", `<span class="chev">${ic("eye")}</span>`);
+      row.onclick = () => preview(q); sec.append(row);
+    });
+    return [el("div", "label", name), sec];
+  }));
+}
+
+// The card exactly as in review, in an overlay; nothing is recorded.
+function preview(q) {
+  const o = $("overlay");
+  o.innerHTML = `<div class="top"><button class="iconbtn" id="pclose">${ic("close")}</button><span class="banner">${ic("eye")}Preview · nothing is recorded</span></div><div id="pcard"></div><div class="actions" id="pact"></div>`;
+  const c = q.c != null ? CARDS[q.c] : { kind: "open", topic: q.t, front: q.f };
+  const view = cardView(c, $("pcard"));
+  const act = $("pact");
+  if (c.kind === "card") {
+    const b = el("button", "btn quiet", "Show answer"); b.onclick = () => { view.flip(); b.textContent = "Show question"; b.onclick = () => { view.unflip(); preview(q); }; }; act.append(b);
+  } else if (c.kind === "open") act.append(el("p", "ask", "Open questions are answered in a Claude session, where the grader reads your answer."));
+  $("pclose").onclick = () => o.classList.remove("open");
+  o.classList.add("open");
+}
+
+// Builds a review card into `host`; returns controls. Used by practice and by preview.
+function cardView(c, host) {
+  host.innerHTML = `<div class="stage"><div class="card surface"><div class="face front"><div class="meta"></div><div class="q"></div><div class="opts" hidden></div><div class="hint"></div></div>
+    <div class="face back"><div class="meta">${ic("check")}Answer</div><div class="a"></div><div class="pts"><h4>You knew it if you said each of these, in any words:</h4><ul></ul></div></div></div></div>`;
+  const card = host.querySelector(".card");
+  host.querySelector(".front .meta").innerHTML = `${ic(TYPE[c.kind][0])}<span></span>`;
+  host.querySelector(".front .meta span").textContent = `${TYPE[c.kind][1]} · ${c.topic}`;
+  rich(host.querySelector(".q"), c.front);
+  host.querySelector(".hint").textContent = c.kind === "card" ? "Tap to see the answer · swipe left if you didn't know it" : "";
+  if (c.kind === "card") {
+    rich(host.querySelector(".a"), c.back);
+    const ul = host.querySelector(".pts ul"); list(ul, c.points);
+    [...ul.children].forEach((li) => { const t = el("span"); t.append(...li.childNodes); li.innerHTML = `<span class="box">${ic("check")}</span>`; li.append(t); });
+  }
+  return {
+    card, opts: host.querySelector(".opts"), points: () => [...host.querySelectorAll(".pts li")],
+    flip: () => card.classList.add("flipped"), unflip: () => card.classList.remove("flipped"),
+  };
+}
+
+function progress() {
+  const T = [["How networks move data", 2, 3, 8, "13 cards"], ["Devices and services", 0, 0, 15, "opens after the first topic"], ["Reliability and security", 0, 0, 19, "later"]];
+  main.innerHTML = `<h1>Progress</h1>
+    <section class="surface big2"><div><b>${s.done + 3}</b><span>answered this week</span></div><div><b>–</b><span>remembered on time · after a week of data</span></div></section>
+    <div class="label">Topics</div><section class="surface">${T.map(([n, k, l, nw, note]) => { const t = k + l + nw;
+      return `<div class="topic"><h3>${n}<span>${note}</span></h3><div class="split"><i class="k" style="flex:${k || 0.0001}"></i><i class="l" style="flex:${l || 0.0001}"></i><i class="n" style="flex:${nw}"></i></div></div>`; }).join("")}</section>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Known</span><span><i style="background:var(--accent);opacity:.4"></i>Learning</span><span><i style="background:var(--line)"></i>Not started</span></div>
+    <div class="label">Answers per day</div><section class="surface cols">${[3, 0, 0, 0, 0, 0, s.done].map((v, n) => `<div><i style="height:${v * 9 + 6}px;opacity:${v ? 1 : .25}"></i>${"MTWTFSS"[n]}</div>`).join("")}</section>`;
+}
+
+function settings() {
+  main.innerHTML = `<h1>Settings</h1><div class="label">Appearance</div>
+    <section class="surface rows"><div class="rowi"><div class="ic">${ic("sun")}</div><div class="tx"><b>Theme</b></div><div class="seg" id="th" style="width:12.5rem"><button data-v="system">Phone</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+      <div class="rowi"><div class="ic">${ic("cards")}</div><div class="tx"><b>Swipe to rate</b><span>Left: didn't know</span></div><span class="switch"></span></div></section>
+    <div class="label">Saving</div>
+    <section class="surface rows"><div class="rowi"><div class="ic">${ic("cloud")}</div><div class="tx"><b>Saved to GitHub</b><span>just now</span></div><span class="chev">${ic("check")}</span></div>
+      <div class="rowi"><div class="ic">${ic("key")}</div><div class="tx"><b>Token</b><span>works · expires in 87 days</span></div><span class="chev">${ic("right")}</span></div></section>`;
+  const cur = localStorage.getItem("mock-theme") || "system";
+  [...$("th").children].forEach((b) => { b.classList.toggle("on", b.dataset.v === cur); b.onclick = () => { localStorage.setItem("mock-theme", b.dataset.v); theme(); settings(); }; });
+}
+
+// ---------- practice ----------
+let i = 0, view, flipped = false, heavy = false;
+function practise() {
+  document.body.classList.add("practising");
+  main.innerHTML = `<div class="top"><button class="iconbtn" id="x">${ic("close")}</button><div class="bar"><i id="bar"></i></div><span class="saved" id="sync">${ic("cloud")}Saved</span></div><div id="host"></div><div class="actions" id="actions"></div>`;
+  $("x").onclick = () => tab("today");
+  show();
+}
+function show() {
+  $("bar").style.width = `${(s.done / s.due) * 100}%`;
+  const c = CARDS[i]; if (!c) return end();
+  flipped = false; heavy = false;
+  view = cardView(c, $("host"));
+  if (c.kind === "choice") return choice(c);
+  view.card.onclick = (e) => { if (!e.target.closest("li")) flip(); };
+  view.points().forEach((li) => li.onclick = () => { li.classList.toggle("on"); suggest(); });
+  swipe(view.card, { move: (dx) => { if (!flipped) view.card.style.transform = dx ? `translateX(${dx}px) rotate(${dx / 30}deg)` : ""; },
+    left: () => { flip(); next(1); }, right: () => flip() });
+  $("actions").innerHTML = ""; const b = el("button", "btn primary", "Show answer"); b.onclick = flip; $("actions").append(b);
+}
+function flip() { if (flipped) return; flipped = true; view.card.style.transform = ""; view.flip(); step1(); }
+function flagBtn() { return `<button class="flag${heavy ? " on" : ""}" id="flag">${ic("flag")}Too much for one card</button>`; }
+function wireFlag() { $("flag").onclick = () => { heavy = !heavy; $("flag").classList.toggle("on", heavy); }; }
+function step1() {
+  $("actions").innerHTML = `<p class="ask">Did you know it?</p><div class="grid2">
+    <button class="rate no" id="no">${ic("x")}No<small>a point missing or wrong</small></button>
+    <button class="rate yes" id="yes">${ic("check")}Yes<small>every key point</small></button></div><div style="text-align:center">${flagBtn()}</div>`;
+  $("no").onclick = () => next(1); $("yes").onclick = step2; wireFlag(); suggest();
+}
+function suggest() {
+  const lis = view.points(); if (!$("no") || !lis.length) return;
+  const all = lis.every((l) => l.classList.contains("on")), any = lis.some((l) => l.classList.contains("on"));
+  $("yes").classList.toggle("suggest", all); $("no").classList.toggle("suggest", any && !all);
+}
+function step2() {
+  $("actions").innerHTML = `<p class="ask">How did it come?</p><div class="grid3">
+    <button class="rate easy" id="e">${ic("zap")}Instantly<small>about 2 s, sure</small></button>
+    <button class="rate good" id="g">${ic("clock")}A moment<small>a few seconds</small></button>
+    <button class="rate hard" id="h">${ic("mount")}With effort<small>hesitated</small></button></div>
+    <div style="text-align:center"><button class="flag" id="b1">← Back</button></div>`;
+  $("e").onclick = () => next(4); $("g").onclick = () => next(3); $("h").onclick = () => next(2); $("b1").onclick = step1;
+}
+function choice(c) {
+  view.opts.hidden = false;
+  view.opts.replaceChildren(...c.options.map((o, n) => { const b = el("button", "opt"); b.append(el("span", "k", "ABCD"[n]), o.text); b.onclick = () => pick(c, n, b); return b; }));
+  $("actions").innerHTML = '<p class="ask">Choose one</p>';
+}
+function pick(c, n, b) {
+  const opts = [...view.opts.children]; opts.forEach((x) => x.disabled = true);
+  const r = c.options.findIndex((x) => x.right);
+  opts[r].classList.add("right"); opts[r].querySelector(".k").innerHTML = ic("check");
+  if (n !== r) {
+    b.classList.add("wrong"); b.querySelector(".k").innerHTML = ic("x");
+    const note = el("p", "note"); note.append(el("b", "", "Trap: "), c.options[n].trap); b.after(note);
+    $("actions").replaceChildren(el("p", "ask", c.why)); const go = el("button", "btn primary", "Continue"); go.onclick = () => next(1); $("actions").append(go);
+  } else {
+    $("actions").innerHTML = '<p class="ask">Right. Why? A sentence or two, graded at your next Claude session</p><textarea placeholder="Because…"></textarea><p></p><button class="btn primary" id="go">Save reason</button>';
+    $("go").onclick = () => next(3);
+  }
+}
+function next(r) {
+  s.done++; if (r === 1) s.again++;
+  $("sync").innerHTML = `${ic("cloud")}Saving…`; setTimeout(() => { if ($("sync")) $("sync").innerHTML = `${ic("cloud")}Saved`; }, 700);
+  view.card.style.transform = `translateX(${r === 1 ? -115 : 115}%) rotate(${r === 1 ? -6 : 6}deg)`;
+  setTimeout(() => { i++; show(); }, 260);
+}
+function end() {
+  document.body.classList.remove("practising");
+  main.innerHTML = `<div style="text-align:center;padding:1.5rem 0 .5rem"><svg viewBox="0 0 64 64" style="width:4.5rem"><circle cx="32" cy="32" r="30" fill="var(--accent-soft)"/><path d="M20 33l8 8 16-17" stroke="var(--accent)" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h1 style="margin:.6rem 0 0">Done for now</h1><p style="color:var(--muted);margin:.2rem 0 1.2rem">Everything is saved</p></div>
+    <section class="surface"><div class="stats" style="border:0"><div><b>${s.done}</b><span>answered</span></div><div><b>${s.again}</b><span>back soon</span></div><div><b>${s.ai}</b><span>for AI</span></div></div></section>
+    <p></p><section class="surface rows"><div class="rowi"><div class="ic acc">${ic("spark")}</div><div class="tx"><b>Continue with Claude</b><span>${s.ai} open questions wait for the grader</span></div><span class="chev">${ic("right")}</span></div></section>
+    <p></p><button class="btn quiet" id="home">Back to Today</button>`;
+  $("home").onclick = () => tab("today");
+}
+tab("today");
+</script>
+</body>
+</html>
