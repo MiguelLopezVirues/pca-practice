@@ -124,6 +124,17 @@ def test_each_answer_is_logged_once_with_an_id(context, page_origin, repo, tmp_p
     assert page.locator("#pending").get_attribute("data-count") == "0"
 
 
+def test_reveal_shows_the_key_points_to_judge_by(context, page_origin, repo, tmp_path):
+    """Self-grading judges meaning, not wording: the back comes with the card's must points."""
+    seed = repo.files()
+    first = flashcard_queue(seed, T0, tmp_path)[0]
+    page = open_page(context, page_origin, repo)
+    assert not page.locator("#card-points").is_visible()
+    page.click("#reveal")
+    shown = [t.strip() for t in page.locator("#card-points li").all_inner_texts()]
+    assert shown == [m["point"].strip() for m in items_by_id(seed)[first]["must"]]
+
+
 def test_two_steps_give_again_hard_good_easy(context, page_origin, repo):
     page = open_page(context, page_origin, repo)
     page.click("#reveal")

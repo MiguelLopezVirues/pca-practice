@@ -180,6 +180,12 @@ function showCard() {
   current = { id: item.id, shown: Date.now(), prompt: `card:${k + 1}` };
   $("card-front").textContent = fronts[k];
   $("card-back").textContent = item.card.back;
+  $("card-points").replaceChildren(...(item.must || []).map((m) => {
+    const li = document.createElement("li");
+    li.textContent = m.point;
+    return li;
+  }));
+  $("card-points-box").hidden = true;
   $("card").hidden = false;
   $("done").hidden = true;
   return "ready";
@@ -210,6 +216,7 @@ async function rate(rating) {
 
 $("reveal").addEventListener("click", () => {
   $("card-back").hidden = false;
+  $("card-points-box").hidden = !$("card-points").children.length;
   $("ratings").hidden = false;
   $("reveal").hidden = true;
 });

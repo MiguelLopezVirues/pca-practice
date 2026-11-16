@@ -24,6 +24,10 @@
   <p id="card-front"></p>
   <button id="reveal" type="button">Show answer</button>
   <p id="card-back" hidden></p>
+  <div id="card-points-box" hidden>
+    <p class="ask">You knew it if your answer says each of these, in any words:</p>
+    <ul id="card-points"></ul>
+  </div>
   <div id="ratings" hidden>
     <p class="ask">Did you know it?</p>
     <div class="row two">
@@ -42,7 +46,8 @@
       <summary>How to rate</summary>
       <ul>
         <li>Say or think your answer <em>before</em> revealing.</li>
-        <li><strong>No</strong>: nothing came, it was wrong, half right, or you only recognised it after seeing the back.</li>
+        <li>Judge the <strong>meaning</strong> against the key points, not the wording of the back: "the one that sends the request" and "the one requesting" are the same point. Extra details are fine unless they are wrong.</li>
+        <li><strong>No</strong>: nothing came, a key point was missing or wrong, or you only recognised it after seeing the back.</li>
         <li><strong>Instantly</strong>: at once (about two seconds), you would bet on it.</li>
         <li><strong>After a moment</strong>: a few seconds, and sure once it came.</li>
         <li><strong>With effort</strong>: you hesitated between two answers, rebuilt it by reasoning, took about ten seconds or more, or got it right without being sure.</li>
