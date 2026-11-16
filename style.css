@@ -16,3 +16,5 @@ button { font-size: 1.05rem; padding: .7rem 1rem; border-radius: .5rem; border: 
 #token-form { display: grid; gap: .5rem; }
 #token-form[hidden], [hidden] { display: none !important; }
 input { font-size: 1rem; padding: .6rem; }
+#sync { font-size: .85rem; padding: .3rem .7rem; }
+#sync[data-state="offline"], #sync[data-state="token-expired"], #sync[data-state="error"] { color: #b00020; border-color: #b00020; }

@@ -30,6 +30,9 @@ export const outboxPut = (answer) => run("outbox", "readwrite", (s) => s.put(ans
 export const outboxDelete = (ids) => run("outbox", "readwrite", (s) => { ids.forEach((id) => s.delete(id)); });
 export const cacheGet = (key) => run("cache", "readonly", (s) => s.get(key));
 export const cachePut = (key, value) => run("cache", "readwrite", (s) => s.put(value, key));
+// the repository files the engine last ran on, with the commit they belong to
+export const snapshotGet = () => cacheGet("snapshot");
+export const snapshotPut = (snap) => cachePut("snapshot", snap);
 
 export async function keepStorage() {
   try { await navigator.storage?.persist?.(); } catch { /* best effort */ }

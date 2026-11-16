@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -20,6 +21,7 @@ class FakeRepo:
         self.head: str | None = None
         self.requests: list[tuple[str, str]] = []
         self.offline = False
+        self.ref_delay = 0.0  # seconds before answering a read of the branch head
         self.lock = threading.Lock()
         # called once, right before the next ref update is applied (to simulate another device)
         self.before_next_ref_update = None
@@ -177,6 +179,8 @@ class _Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length)) if length else None
         self.repo.requests.append((method, self.path))
+        if method == "GET" and self.path.endswith("/git/ref/heads/main") and self.repo.ref_delay:
+            time.sleep(self.repo.ref_delay)
         status, payload = self.repo.handle(method, self.path, self.headers.get("Authorization"), body)
         data = json.dumps(payload).encode()
         self.send_response(status)

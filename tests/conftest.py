@@ -181,8 +181,19 @@ def open_page(context, origin, repo, token="good-token"):
 def settle(page, timeout=120_000):
     page.wait_for_function(
         "() => { const s = document.querySelector('#status'); "
-        "return s && !['loading', 'saving'].includes(s.dataset.state); }", timeout=timeout)
+        "return s && s.dataset.state !== 'loading'; }", timeout=timeout)
     return page.locator("#status").get_attribute("data-state")
+
+
+def save_now(page, timeout=120_000):
+    """Tap the sync button and wait until nothing is being saved; return the sync state."""
+    page.click("#sync")
+    page.wait_for_function(
+        "() => { const s = document.querySelector('#sync'); "
+        "return s && s.dataset.state !== 'saving' && "
+        "(s.dataset.state !== 'idle' || document.querySelector('#pending').dataset.count === '0'); }",
+        timeout=timeout)
+    return page.locator("#sync").get_attribute("data-state")
 
 
 # the two-step self-grading: rating -> buttons clicked after revealing

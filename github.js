@@ -33,10 +33,14 @@ export class GitHub {
     return res.json();
   }
 
+  async ref() {
+    return (await this.call("GET", "ref/heads/main")).object.sha;
+  }
+
   async head() {
-    const ref = await this.call("GET", "ref/heads/main");
-    const commit = await this.call("GET", `commits/${ref.object.sha}`);
-    return { commit: ref.object.sha, tree: commit.tree.sha };
+    const sha = await this.ref();
+    const commit = await this.call("GET", `commits/${sha}`);
+    return { commit: sha, tree: commit.tree.sha };
   }
 
   async tree(sha) {
@@ -81,6 +85,6 @@ export class GitHub {
     });
     const commit = await this.call("POST", "commits", { message, tree: tree.sha, parents: [head.commit] });
     await this.call("PATCH", "refs/heads/main", { sha: commit.sha, force: false });
-    return commit.sha;
+    return { commit: commit.sha, tree: tree.sha };
   }
 }
