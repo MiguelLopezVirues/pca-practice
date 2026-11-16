@@ -26,7 +26,7 @@ svg.i { width:1.25rem; height:1.25rem; fill:none; stroke:currentColor; stroke-wi
 h1 { font-size:1.45rem; font-weight:650; letter-spacing:-.01em; margin:0 0 1rem; }
 .label { font-size:.75rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin:1.6rem .2rem .6rem; }
 .surface { background:var(--surface); border-radius:var(--r); box-shadow:var(--shadow); }
-.btn { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; border:0; border-radius:var(--r-sm); padding:.95rem 1rem; font:600 1rem system-ui; cursor:pointer; }
+.btn { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; border:0; border-radius:var(--r-sm); padding:.95rem 1rem; font:600 1rem system-ui; cursor:pointer; text-decoration:none; }
 .btn.primary { background:var(--accent); color:#fff; }
 .btn.quiet { background:var(--soft); color:var(--text); }
 .btn.plain { background:none; color:var(--muted); font-weight:500; padding:.6rem; }
@@ -64,6 +64,19 @@ body.practising .tabs { display:none; } body.practising main { padding-bottom:1r
 .seg button { flex:1; border:0; background:none; color:var(--muted); padding:.5rem; border-radius:9px; font:500 .85rem system-ui; }
 .seg button.on { background:var(--raised); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.08); font-weight:600; }
 .chips { display:flex; gap:.4rem; overflow-x:auto; padding:.8rem 0 .1rem; scrollbar-width:none; }
+.searchrow { display:flex; gap:.5rem; margin-bottom:.8rem; }
+.search { flex:1; display:flex; align-items:center; gap:.5rem; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm); padding:0 .8rem; color:var(--faint); }
+.search input { flex:1; border:0; outline:0; background:none; color:var(--text); font:1rem system-ui; padding:.7rem 0; }
+.fbtn { position:relative; border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:var(--r-sm); width:2.9rem; display:grid; place-items:center; }
+.fbtn b { position:absolute; top:-.35rem; right:-.35rem; min-width:1.1rem; height:1.1rem; border-radius:999px; background:var(--accent); color:#fff; font-size:.68rem; display:grid; place-items:center; }
+.veil { position:fixed; inset:0; background:rgba(10,15,30,.35); opacity:0; pointer-events:none; transition:opacity .25s; z-index:6; }
+.veil.open { opacity:1; pointer-events:auto; }
+.sheet { position:fixed; left:0; right:0; bottom:0; max-width:30rem; margin:auto; background:var(--surface); border-radius:20px 20px 0 0; padding:.5rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom)); transform:translateY(105%); transition:transform .3s; z-index:7; max-height:85vh; overflow:auto; }
+.sheet.open { transform:none; } .grab { width:2.4rem; height:4px; border-radius:999px; background:var(--line); margin:.3rem auto 1rem; }
+.sheet h2 { margin:0 0 .2rem; font-size:1.15rem; } .sheet .sub { color:var(--muted); font-size:.88rem; margin:0 0 1rem; }
+.checks label { display:flex; align-items:center; gap:.7rem; padding:.6rem 0; border-bottom:1px solid var(--line); }
+.checks input { width:1.15rem; height:1.15rem; accent-color:var(--accent); }
+.stack2 { display:grid; gap:.55rem; margin-top:1rem; }
 .chips button { flex:none; display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--line); background:var(--surface); color:var(--muted);
   border-radius:999px; padding:.38rem .75rem; font:500 .82rem system-ui; }
 .chips button.on { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
@@ -137,6 +150,8 @@ textarea { width:100%; min-height:5.2rem; border:1.5px solid var(--line); border
 <main id="main"></main>
 <nav class="tabs" id="tabs"></nav>
 <div class="overlay" id="overlay"></div>
+<div class="veil" id="veil"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
 
 <script type="module">
 import { CARDS, rich, list, swipe, theme } from "./common.js";
@@ -158,6 +173,7 @@ const P = {
   right: "M9 6l6 6-6 6", close: "M6 6l12 12M18 6 6 18", flag: "M5 21V4h11l-1.5 4L16 12H5", eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4",
   key: "M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z", cloud: "M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4", filter: "M3 5h18l-7 8v6l-4 2v-8z", book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5",
 };
 const ic = (name, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24"><path d="${P[name]}"/></svg>`;
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -203,29 +219,83 @@ function today() {
     <p></p><button class="btn primary" id="go">Start practice</button>
     <div class="label">Waiting for you</div>
     <section class="surface rows"><div class="rowi"><div class="ic acc">${ic("spark")}</div><div class="tx"><b>${s.ai} open questions</b><span>Explain, trace and cases need the grader</span></div><span class="chev">${ic("right")}</span></div>
-      <div class="rowi"><div class="ic">${ic("cards")}</div><div class="tx"><b>Next topic</b><span>Devices and services, after this one</span></div><span class="chev">${ic("right")}</span></div></section>
+      <div class="rowi" id="nexttopic"><div class="ic">${ic("cards")}</div><div class="tx"><b>Next topic</b><span>Devices and services, after this one</span></div><span class="chev">${ic("right")}</span></div></section>
     <div class="label">This week</div>
     <section class="surface week">${["M", "T", "W", "T", "F", "S", "S"].map((d, n) => `<div class="day${n === 0 ? " today" : ""}"><i class="${n === 0 && s.done ? "on" : ""}">${n === 0 && s.done ? ic("check") : ""}</i>${d}</div>`).join("")}</section>`;
   $("go").onclick = () => { i = 0; practise(); };
+  $("nexttopic").onclick = nextTopic;
 }
 
-let groupBy = "topic", filter = "all";
+function openSheet(build) {
+  const body = $("sheetBody"); body.replaceChildren(); build(body);
+  $("veil").classList.add("open"); $("sheet").classList.add("open");
+}
+function closeSheet() { $("veil").classList.remove("open"); $("sheet").classList.remove("open"); }
+
+// Read the note in Obsidian (the GitSync copy on the phone), then mark the topic as read here to open its cards.
+function nextTopic() {
+  const file = "10 - Notes/Devices and services that act on traffic";
+  openSheet((b) => {
+    b.append(el("h2", "", "Devices and services"), el("p", "sub", "About 12 minutes of reading · 15 cards open once you have read it"));
+    const st = el("div", "stack2");
+    const read = el("a", "btn quiet"); read.innerHTML = `${ic("book")}Read the note in Obsidian`;
+    read.href = `obsidian://open?vault=vault&file=${encodeURIComponent(file)}`;
+    const done = el("button", "btn primary", "I've read it · open its cards"); done.onclick = closeSheet;
+    st.append(read, done, el("p", "ask", "Marking it read saves to GitHub like an answer; its cards join Today."));
+    b.append(st);
+  });
+}
+
+let groupBy = "topic", filter = "all", query = "";
+const picked = { topic: new Set(), k: new Set() };
 function cards() {
-  main.innerHTML = `<h1>Cards</h1><div class="seg" id="seg"><button data-g="topic">Topic</button><button data-g="k">Type</button><button data-g="s">Status</button></div>
+  main.innerHTML = `<h1>Cards</h1><div class="searchrow"><label class="search">${ic("search")}<input id="q" placeholder="Search questions" autocomplete="off"></label>
+    <button class="fbtn" id="fbtn" aria-label="Filters">${ic("filter")}</button></div>
+    <div class="seg" id="seg"><button data-g="topic">Topic</button><button data-g="k">Type</button><button data-g="s">Status</button></div>
     <div class="chips" id="chips"></div><div id="groups"></div>`;
-  [...$("seg").children].forEach((b) => { b.classList.toggle("on", b.dataset.g === groupBy); b.onclick = () => { groupBy = b.dataset.g; cards(); }; });
+  $("q").value = query;
+  $("q").oninput = () => { query = $("q").value.toLowerCase(); renderCards(); };
+  $("fbtn").onclick = filters;
+  [...$("seg").children].forEach((b) => { b.classList.toggle("on", b.dataset.g === groupBy); b.onclick = () => { groupBy = b.dataset.g; renderCards(); }; });
+  renderCards();
+}
+const textOf = (q) => (q.c != null ? CARDS[q.c].front : q.f).replace(/\*\*/g, "");
+const matches = (q) => (!query || textOf(q).toLowerCase().includes(query) || q.t.toLowerCase().includes(query))
+  && (!picked.topic.size || picked.topic.has(q.t)) && (!picked.k.size || picked.k.has(q.k));
+function filters() {
+  openSheet((b) => {
+    b.append(el("h2", "", "Filter cards"));
+    const group = (title, key, values) => {
+      b.append(el("div", "label", title)); const box = el("div", "checks");
+      values.forEach(([v, label]) => { const l = el("label"); const x = el("input"); x.type = "checkbox"; x.checked = picked[key].has(v);
+        x.onchange = () => { x.checked ? picked[key].add(v) : picked[key].delete(v); renderCards(); }; l.append(x, label); box.append(l); });
+      b.append(box);
+    };
+    group("Topic", "topic", [...new Set(QUEUE.map((q) => q.t))].map((t) => [t, t]));
+    group("Type", "k", Object.entries(TYPE).map(([k, [, label]]) => [k, label]));
+    const st = el("div", "stack2"); const clear = el("button", "btn quiet", "Clear filters");
+    clear.onclick = () => { picked.topic.clear(); picked.k.clear(); closeSheet(); renderCards(); };
+    const done = el("button", "btn primary", "Show cards"); done.onclick = closeSheet; st.append(done, clear); b.append(st);
+  });
+}
+function renderCards() {
+  const n = picked.topic.size + picked.k.size;
+  $("fbtn").querySelector("b")?.remove(); if (n) $("fbtn").append(el("b", "", String(n)));
+  [...$("seg").children].forEach((b) => b.classList.toggle("on", b.dataset.g === groupBy));
   const F = [["all", "All"], ["due", "Due"], ["new", "New"], ["learn", "Learning"], ["ai", "Needs AI"], ["later", "Later"]];
+  const base = QUEUE.filter(matches);
   $("chips").replaceChildren(...F.map(([k, label]) => {
     const b = el("button", filter === k ? "on" : "");
     if (k !== "all") { const d = el("i", "dot"); d.style.background = STATUS[k][0]; b.append(d); }
-    b.append(label, el("em", "", String(QUEUE.filter((q) => k === "all" || q.s === k).length)));
-    b.onclick = () => { filter = k; cards(); }; return b;
+    b.append(label, el("em", "", String(base.filter((q) => k === "all" || q.s === k).length)));
+    b.onclick = () => { filter = k; renderCards(); }; return b;
   }));
   const groups = {};
-  QUEUE.filter((q) => filter === "all" || q.s === filter).forEach((q) => {
+  base.filter((q) => filter === "all" || q.s === filter).forEach((q) => {
     const key = groupBy === "topic" ? q.t : groupBy === "k" ? TYPE[q.k][1] : STATUS[q.s][1];
     (groups[key] ??= []).push(q);
   });
+  if (!Object.keys(groups).length) return $("groups").replaceChildren(el("p", "ask", "No cards match."));
   $("groups").replaceChildren(...Object.entries(groups).flatMap(([name, items]) => {
     const sec = el("section", "surface rows");
     items.forEach((q) => {
@@ -368,6 +438,7 @@ function end() {
     <p></p><button class="btn quiet" id="home">Back to Today</button>`;
   $("home").onclick = () => tab("today");
 }
+$("veil").onclick = closeSheet;
 tab("today");
 </script>
 </body>
