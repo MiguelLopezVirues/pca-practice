@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<title>Mockup A · Calm cards</title>
+<style>
+:root { --bg:#f4f5fb; --card:#fff; --text:#1d2033; --muted:#6b7080; --line:#e3e5ef; --accent:#4f46e5;
+  --no:#e5484d; --yes:#2fa36b; --easy:#3b82f6; --good:#2fa36b; --hard:#f59e0b; --shadow:0 10px 30px rgba(30,35,90,.12); }
+[data-theme="dark"] { --bg:#0f1117; --card:#1a1d27; --text:#eceef6; --muted:#9aa0b4; --line:#2a2e3b; --accent:#8b85ff;
+  --shadow:0 10px 30px rgba(0,0,0,.45); }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { display:flex; flex-direction:column; max-width:30rem; margin:auto; padding:env(safe-area-inset-top) 1rem 1rem; }
+.top { display:flex; align-items:center; gap:.6rem; padding:.8rem 0; }
+.progress { flex:1; height:.5rem; background:var(--line); border-radius:1rem; overflow:hidden; }
+.progress i { display:block; height:100%; width:0; background:var(--accent); border-radius:1rem; transition:width .4s; }
+.chip { font-size:.78rem; padding:.25rem .6rem; border-radius:1rem; background:var(--card); border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+.chip.ai { color:var(--accent); border-color:var(--accent); }
+.icon { background:none; border:0; font-size:1.3rem; color:var(--muted); padding:.2rem; }
+.stage { flex:1; perspective:1200px; display:flex; flex-direction:column; justify-content:center; padding:.5rem 0; }
+.card { position:relative; display:grid; background:var(--card); border-radius:1.4rem; box-shadow:var(--shadow); padding:1.4rem 1.3rem; min-height:22rem;
+  transition:transform .45s cubic-bezier(.2,.7,.3,1), opacity .25s; transform-style:preserve-3d; touch-action:pan-y; }
+.card .face { grid-area:1/1; backface-visibility:hidden; }
+.card .front { padding-bottom:2.5rem; }
+.card .back { transform:rotateY(180deg); }
+.card.flipped { transform:rotateY(180deg); }
+.topic { display:inline-block; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin-bottom:.8rem; }
+.q { font-size:1.25rem; line-height:1.45; }
+.q strong, .a strong { color:var(--accent); font-weight:650; }
+.hint { position:absolute; bottom:1rem; left:0; right:0; text-align:center; color:var(--muted); font-size:.85rem; }
+table { border-collapse:collapse; width:100%; font-size:.92rem; margin:.4rem 0 1rem; }
+th, td { text-align:left; padding:.35rem .4rem; border-bottom:1px solid var(--line); }
+th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; }
+.points h4 { margin:.6rem 0 .3rem; font-size:.85rem; color:var(--muted); font-weight:600; }
+.points ul { list-style:none; padding:0; margin:0; }
+.points li { display:flex; gap:.6rem; align-items:flex-start; padding:.45rem .2rem; border-radius:.6rem; cursor:pointer; }
+.points li::before { content:""; flex:none; width:1.25rem; height:1.25rem; margin-top:.1rem; border:2px solid var(--line); border-radius:50%; }
+.points li.on::before { background:var(--yes); border-color:var(--yes); box-shadow:inset 0 0 0 3px var(--card); }
+.actions { padding:1rem 0 .4rem; min-height:9rem; }
+.ask { text-align:center; color:var(--muted); font-size:.9rem; margin:0 0 .6rem; }
+.row { display:grid; gap:.6rem; }
+.row.two { grid-template-columns:1fr 1fr; } .row.three { grid-template-columns:repeat(3,1fr); }
+.btn { border:0; border-radius:1rem; padding:1rem .5rem; font:600 1rem system-ui; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+.btn small { display:block; font-weight:400; font-size:.72rem; opacity:.9; }
+.no { background:var(--no); } .yes { background:var(--yes); } .easy { background:var(--easy); } .good { background:var(--good); } .hard { background:var(--hard); }
+.primary { background:var(--accent); width:100%; }
+.ghost { background:none; color:var(--muted); box-shadow:none; width:100%; padding:.5rem; font-weight:500; }
+.suggest { outline:3px solid currentColor; outline-offset:2px; }
+.options { display:grid; gap:.6rem; margin-top:1rem; }
+.opt { text-align:left; border:2px solid var(--line); background:var(--card); color:var(--text); border-radius:1rem; padding:.9rem 1rem; font:500 1rem system-ui; display:flex; gap:.8rem; align-items:center; }
+.opt b { flex:none; width:1.8rem; height:1.8rem; border-radius:50%; display:grid; place-items:center; background:var(--line); font-size:.85rem; }
+.opt.right { border-color:var(--yes); } .opt.right b { background:var(--yes); color:#fff; }
+.opt.wrong { border-color:var(--no); } .opt.wrong b { background:var(--no); color:#fff; }
+.trap { font-size:.85rem; color:var(--no); margin:.2rem 0 0 2.6rem; }
+textarea { width:100%; min-height:5.5rem; border:2px solid var(--line); border-radius:1rem; padding:.8rem; font:1rem system-ui; background:var(--card); color:var(--text); }
+.end { text-align:center; }
+.big { width:5rem; height:5rem; border-radius:50%; background:var(--yes); color:#fff; display:grid; place-items:center; font-size:2.4rem; margin:1rem auto; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:1.2rem 0; }
+.stat { background:var(--card); border-radius:1rem; padding:.8rem .4rem; box-shadow:var(--shadow); }
+.stat b { display:block; font-size:1.5rem; }
+.stat span { font-size:.78rem; color:var(--muted); }
+.aibox { background:var(--card); border:2px dashed var(--accent); border-radius:1rem; padding:1rem; text-align:left; margin-bottom:1rem; }
+.sheet { position:fixed; inset:auto 0 0 0; max-width:30rem; margin:auto; background:var(--card); border-radius:1.4rem 1.4rem 0 0; padding:1.2rem; box-shadow:0 -10px 30px rgba(0,0,0,.2); transform:translateY(110%); transition:transform .3s; }
+.sheet.open { transform:none; }
+select { font:1rem system-ui; padding:.5rem; border-radius:.6rem; border:1px solid var(--line); background:var(--bg); color:var(--text); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="top">
+  <button class="icon" aria-label="Close">✕</button>
+  <div class="progress"><i id="bar"></i></div>
+  <span class="chip" id="sync">✓ Saved</span>
+  <span class="chip ai" id="ai">8 for AI</span>
+  <button class="icon" id="gear" aria-label="Settings">⚙</button>
+</div>
+
+<div class="stage" id="stage">
+  <div class="card" id="card">
+    <div class="face front">
+      <span class="topic" id="topic"></span>
+      <div class="q" id="front"></div>
+      <div class="options" id="options" hidden></div>
+      <div class="hint" id="hint">Tap the card to see the answer · swipe ← if you did not know it, → if you did</div>
+    </div>
+    <div class="face back">
+      <span class="topic">Answer</span>
+      <div class="a" id="back"></div>
+      <div class="points">
+        <h4>You knew it if you said each of these, in any words. Tap the ones you had:</h4>
+        <ul id="points"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="actions" id="actions"></div>
+
+<div class="sheet" id="sheet">
+  <h3 style="margin-top:0">Settings</h3>
+  <label>Theme <select id="theme"><option value="system">Follow the phone</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <p><button class="btn ghost" id="closeSheet">Close</button></p>
+</div>
+
+<script type="module">
+import { CARDS, SESSION, rich, list, swipe, theme } from "./common.js";
+const $ = (id) => document.getElementById(id);
+theme($("theme"));
+$("gear").onclick = () => $("sheet").classList.add("open");
+$("closeSheet").onclick = () => $("sheet").classList.remove("open");
+
+let i = 0, flipped = false;
+const s = { ...SESSION };
+
+function progress() { $("bar").style.width = `${(s.done / s.due) * 100}%`; }
+
+function show() {
+  progress();
+  const c = CARDS[i];
+  if (!c) return end();
+  flipped = false;
+  $("card").classList.remove("flipped");
+  $("card").style.transition = "none";
+  $("card").style.transform = "";
+  void $("card").offsetWidth;
+  $("card").style.transition = "";
+  $("topic").textContent = c.topic;
+  rich($("front"), c.front);
+  $("options").hidden = c.kind !== "choice";
+  $("hint").hidden = c.kind === "choice";
+  $("actions").replaceChildren();
+  if (c.kind === "choice") return choice(c);
+  rich($("back"), c.back);
+  list($("points"), c.points);
+  [...$("points").children].forEach((li) => { const t = document.createElement("span"); t.append(...li.childNodes); li.append(t); });
+  [...$("points").children].forEach((li) => li.onclick = () => { li.classList.toggle("on"); suggest(); });
+  const a = $("actions");
+  a.innerHTML = '<button class="btn primary" id="reveal">Show answer</button>';
+  $("reveal").onclick = flip;
+}
+
+function flip() {
+  if (flipped) return;
+  flipped = true;
+  $("card").classList.add("flipped");
+  step1();
+}
+
+function step1() {
+  const a = $("actions");
+  a.innerHTML = '<p class="ask">Did you know it?</p><div class="row two">' +
+    '<button class="btn no" id="no">✕ No<small>missing or wrong</small></button>' +
+    '<button class="btn yes" id="yes">✓ Yes<small>all key points</small></button></div>';
+  $("no").onclick = () => next(1);
+  $("yes").onclick = step2;
+  suggest();
+}
+
+function suggest() {
+  const lis = [...$("points").children];
+  if (!$("no") || !lis.length) return;
+  const all = lis.every((li) => li.classList.contains("on"));
+  const any = lis.some((li) => li.classList.contains("on"));
+  $("yes").classList.toggle("suggest", all);
+  $("no").classList.toggle("suggest", any && !all);
+}
+
+function step2() {
+  $("actions").innerHTML = '<p class="ask">How did it come?</p><div class="row three">' +
+    '<button class="btn easy" id="e">⚡ Instantly<small>~2 s, sure</small></button>' +
+    '<button class="btn good" id="g">After a moment<small>a few seconds</small></button>' +
+    '<button class="btn hard" id="h">With effort<small>hesitated</small></button></div>' +
+    '<button class="btn ghost" id="back1">← back</button>';
+  $("e").onclick = () => next(4); $("g").onclick = () => next(3); $("h").onclick = () => next(2);
+  $("back1").onclick = step1;
+}
+
+function choice(c) {
+  const o = $("options");
+  o.replaceChildren();
+  c.options.forEach((opt, n) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    const letter = document.createElement("b"); letter.textContent = "ABCD"[n];
+    b.append(letter, document.createTextNode(opt.text));
+    b.onclick = () => pick(c, n, b);
+    o.append(b);
+  });
+}
+
+function pick(c, n, b) {
+  const opts = [...$("options").children];
+  opts.forEach((x) => x.disabled = true);
+  const right = c.options.findIndex((x) => x.right);
+  opts[right].classList.add("right");
+  const a = $("actions");
+  if (n !== right) {
+    b.classList.add("wrong");
+    const t = document.createElement("p"); t.className = "trap"; t.textContent = "Trap: " + c.options[n].trap;
+    b.after(t);
+    a.innerHTML = '<p class="ask" id="why"></p><button class="btn primary" id="go">Continue</button>';
+    $("why").textContent = c.why;
+    $("go").onclick = () => next(1);
+  } else {
+    a.innerHTML = '<p class="ask">Right. Why? One or two sentences (graded by AI later)</p>' +
+      '<textarea placeholder="Because…"></textarea><p></p><button class="btn primary" id="go">Save reason</button>';
+    $("go").onclick = () => next(3);
+  }
+}
+
+function next(rating) {
+  s.done++; if (rating === 1) s.again++;
+  $("sync").textContent = "↻ Saving…";
+  setTimeout(() => $("sync").textContent = "✓ Saved", 700);
+  $("card").style.transform = `translateX(${rating === 1 ? -120 : 120}%) rotate(${rating === 1 ? -8 : 8}deg)`;
+  setTimeout(() => { i++; show(); }, 260);
+}
+
+function end() {
+  progress();
+  $("stage").innerHTML = `<div class="end"><div class="big">✓</div><h2>Done for now</h2>
+    <div class="stats"><div class="stat"><b>${s.done}</b><span>answered</span></div>
+    <div class="stat"><b>${s.again}</b><span>again later</span></div><div class="stat"><b>✓</b><span>saved</span></div></div>
+    <div class="aibox"><b>${s.aiWaiting} open questions</b> wait for an AI session.<br><span style="color:var(--muted);font-size:.9rem">Explain, trace and case questions need the grader.</span></div>
+    <button class="btn primary">Open Claude</button></div>`;
+  $("actions").replaceChildren();
+}
+
+$("card").onclick = (e) => { if (CARDS[i]?.kind === "card" && !e.target.closest("li")) flip(); };
+swipe($("card"), {
+  move: (dx) => { if (CARDS[i]?.kind === "card" && !flipped) $("card").style.transform = dx ? `translateX(${dx}px) rotate(${dx / 25}deg)` : ""; },
+  left: () => { if (CARDS[i]?.kind === "card") { flip(); next(1); } },
+  right: () => { if (CARDS[i]?.kind === "card") { flip(); step2(); } },
+});
+show();
+</script>
+</body>
+</html>

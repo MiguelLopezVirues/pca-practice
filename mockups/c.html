@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mockup C · App shell</title>
+<style>
+:root { --bg:#eef2f7; --panel:#fff; --text:#0f172a; --muted:#64748b; --line:#dbe2ea; --accent:#0ea5e9; --accent2:#6366f1;
+  --again:#ef4444; --hard:#f97316; --good:#22c55e; --easy:#3b82f6; }
+[data-theme="dark"] { --bg:#0b1220; --panel:#131c2e; --text:#e2e8f0; --muted:#94a3b8; --line:#22304a; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, sans-serif; }
+body { max-width:30rem; margin:auto; display:flex; flex-direction:column; }
+main { flex:1; padding:1rem 1rem 6rem; }
+#act { position:sticky; bottom:0; background:var(--bg); padding:.6rem 0 calc(.6rem + env(safe-area-inset-bottom)); }
+body.practising main { padding-bottom:1rem; }
+body.practising .tabs { display:none; }
+.tabs { position:fixed; bottom:0; left:0; right:0; max-width:30rem; margin:auto; display:grid; grid-template-columns:repeat(4,1fr);
+  background:var(--panel); border-top:1px solid var(--line); padding:.4rem 0 calc(.4rem + env(safe-area-inset-bottom)); }
+.tabs button { background:none; border:0; color:var(--muted); font:500 .72rem system-ui; display:grid; gap:.1rem; justify-items:center; }
+.tabs button i { font-style:normal; font-size:1.3rem; }
+.tabs button.on { color:var(--accent2); }
+h1 { font-size:1.5rem; margin:.4rem 0 1rem; }
+.chips { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:1rem; }
+.tile { background:var(--panel); border-radius:1rem; padding:.9rem; border:1px solid var(--line); }
+.tile b { display:block; font-size:1.6rem; } .tile span { font-size:.78rem; color:var(--muted); }
+.tile.ai b { color:var(--accent2); }
+.start { width:100%; border:0; border-radius:1rem; padding:1.1rem; font:700 1.1rem system-ui; color:#fff;
+  background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 8px 20px rgba(99,102,241,.35); }
+.list { background:var(--panel); border-radius:1rem; border:1px solid var(--line); margin-top:1rem; }
+.list div { display:flex; justify-content:space-between; padding:.8rem 1rem; border-bottom:1px solid var(--line); font-size:.95rem; }
+.list div:last-child { border:0; } .list span { color:var(--muted); }
+.head { display:flex; align-items:center; gap:.7rem; margin-bottom:.8rem; }
+.head button { background:none; border:0; font-size:1.2rem; color:var(--muted); }
+.steps { flex:1; display:flex; gap:3px; } .steps i { flex:1; height:.35rem; border-radius:.3rem; background:var(--line); }
+.steps i.done { background:var(--good); } .steps i.again { background:var(--again); } .steps i.now { background:var(--accent2); }
+.deck { position:relative; margin:.4rem 0 1rem; }
+.deck::before, .deck::after { content:""; position:absolute; left:6%; right:6%; height:100%; border-radius:1.2rem; background:var(--panel); border:1px solid var(--line); z-index:-1; }
+.deck::before { top:.6rem; opacity:.7; } .deck::after { top:1.1rem; left:12%; right:12%; opacity:.4; }
+.card { background:var(--panel); border-radius:1.2rem; border:1px solid var(--line); padding:1.2rem; min-height:16rem; box-shadow:0 6px 18px rgba(15,23,42,.08); transition:transform .3s, opacity .3s; touch-action:pan-y; }
+.tag { display:inline-flex; gap:.4rem; font-size:.72rem; font-weight:600; color:var(--accent2); background:color-mix(in srgb, var(--accent2) 12%, transparent); padding:.2rem .55rem; border-radius:.5rem; }
+.q { font-size:1.15rem; margin:.8rem 0; } .q strong { color:var(--accent2); }
+.sep { border:0; border-top:1px dashed var(--line); margin:1rem 0; }
+.a strong { color:var(--accent); }
+table { border-collapse:collapse; width:100%; font-size:.9rem; } td, th { padding:.3rem; border-bottom:1px solid var(--line); text-align:left; } th { font-size:.72rem; color:var(--muted); text-transform:uppercase; }
+.kp { margin-top:.8rem; } .kp p { font-size:.82rem; color:var(--muted); margin:.2rem 0; }
+.kp label { display:flex; gap:.6rem; align-items:flex-start; padding:.35rem 0; }
+.kp input { width:1.2rem; height:1.2rem; margin-top:.15rem; accent-color:var(--good); }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+.r { border:0; border-radius:1rem; padding:.8rem; color:#fff; font:700 1rem system-ui; text-align:left; display:grid; gap:.1rem; }
+.r span { font-weight:400; font-size:.75rem; opacity:.92; }
+.r.again { background:var(--again); } .r.hard { background:var(--hard); } .r.good { background:var(--good); } .r.easy { background:var(--easy); }
+.reveal { width:100%; border:2px solid var(--accent2); background:none; color:var(--accent2); border-radius:1rem; padding:.9rem; font:700 1rem system-ui; }
+.opt { display:flex; align-items:center; gap:.7rem; width:100%; text-align:left; background:var(--panel); color:var(--text); border:1.5px solid var(--line); border-radius:.9rem; padding:.8rem; margin:.45rem 0; font:500 .98rem system-ui; }
+.opt i { font-style:normal; width:1.7rem; height:1.7rem; border-radius:.5rem; display:grid; place-items:center; background:var(--bg); font-weight:700; }
+.opt.right { border-color:var(--good); background:color-mix(in srgb, var(--good) 10%, var(--panel)); }
+.opt.wrong { border-color:var(--again); background:color-mix(in srgb, var(--again) 10%, var(--panel)); }
+.note { font-size:.86rem; border-radius:.8rem; padding:.7rem .8rem; margin:.5rem 0; }
+.note.trap { background:color-mix(in srgb, var(--again) 12%, transparent); color:var(--again); }
+.note.info { background:color-mix(in srgb, var(--accent) 12%, transparent); }
+textarea { width:100%; min-height:5rem; border:1.5px solid var(--line); border-radius:.9rem; padding:.7rem; background:var(--panel); color:var(--text); font:1rem system-ui; }
+select { font:1rem system-ui; padding:.5rem; border-radius:.6rem; background:var(--panel); color:var(--text); border:1px solid var(--line); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main id="main"></main>
+<nav class="tabs">
+  <button class="on" data-tab="home"><i>⌂</i>Today</button>
+  <button data-tab="queue"><i>☰</i>Queue</button>
+  <button data-tab="stats"><i>▦</i>Progress</button>
+  <button data-tab="settings"><i>⚙</i>Settings</button>
+</nav>
+<script type="module">
+import { CARDS, SESSION, rich, list, swipe, theme } from "./common.js";
+const $ = (id) => document.getElementById(id);
+const main = $("main");
+theme();
+let i = 0; const s = { ...SESSION }; const marks = [];
+const INTERVALS = { 1: "again in 10 min", 2: "in 1 day", 3: "in 3 days", 4: "in 8 days" };
+
+function tab(name) {
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  ({ home, queue: () => static_("Queue", [["Self-graded cards", "4"], ["Multiple choice", "1"], ["Open questions (AI)", "8"], ["New today", "13"]]),
+     stats: () => static_("Progress", [["How networks move data", "13 / 13 open"], ["Devices and services", "locked"], ["Answered this week", "3"], ["Retention", "—"]]),
+     settings })[name]();
+}
+document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => tab(b.dataset.tab));
+
+function home() {
+  document.body.classList.remove("practising");
+  main.innerHTML = `<h1>Today</h1><div class="chips"><div class="tile"><b>${s.due - s.done}</b><span>to review</span></div>
+    <div class="tile ai"><b>${s.aiWaiting}</b><span>for AI</span></div><div class="tile"><b>3</b><span>day streak</span></div></div>
+    <button class="start" id="go">Start practice</button>
+    <div class="list"><div>Last saved <span>✓ just now</span></div><div>Next new topic <span>Devices and services</span></div></div>`;
+  $("go").onclick = () => { i = 0; show(); };
+}
+function static_(title, rows) {
+  main.innerHTML = `<h1>${title}</h1><div class="list">${rows.map(([a, b]) => `<div>${a}<span>${b}</span></div>`).join("")}</div>`;
+}
+function settings() {
+  main.innerHTML = `<h1>Settings</h1><div class="list"><div>Theme <select id="theme"><option value="system">Follow the phone</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+    <div>Swipe to rate <span>on</span></div><div>Token <span>••••••••</span></div></div>`;
+  theme($("theme"));
+}
+function head() {
+  const bars = Array.from({ length: CARDS.length }, (_, n) => `<i class="${marks[n] || (n === i ? "now" : "")}"></i>`).join("");
+  return `<div class="head"><button id="x">✕</button><div class="steps">${bars}</div><span style="font-size:.8rem;color:var(--muted)">✓ saved</span></div>`;
+}
+function show() {
+  document.body.classList.add("practising");
+  const c = CARDS[i]; if (!c) return end();
+  main.innerHTML = head() + `<div class="deck"><div class="card" id="card"><span class="tag">${c.kind === "choice" ? "◉ Choose" : "▢ Card"} · <span id="topic"></span></span>
+    <div class="q" id="front"></div><div id="rest"></div></div></div><div id="act"></div>`;
+  $("x").onclick = home;
+  $("topic").textContent = c.topic; rich($("front"), c.front);
+  if (c.kind === "choice") return choice(c);
+  $("act").innerHTML = '<button class="reveal" id="rv">Show answer</button>';
+  $("rv").onclick = () => reveal(c);
+  swipe($("card"), { move: (dx) => $("card").style.transform = dx ? `translateX(${dx}px) rotate(${dx / 30}deg)` : "",
+    left: () => rate(1), right: () => reveal(c) });
+}
+function reveal(c) {
+  $("rest").innerHTML = '<hr class="sep"><div class="a" id="back"></div><div class="kp"><p>Tick what you said, in any words:</p><div id="kp"></div></div>';
+  rich($("back"), c.back);
+  $("kp").replaceChildren(...c.points.map((t) => { const l = document.createElement("label"); const x = document.createElement("input"); x.type = "checkbox";
+    const span = document.createElement("span"); const tmp = document.createElement("ul"); list(tmp, [t]); span.append(...tmp.firstChild.childNodes); l.append(x, span); return l; }));
+  $("act").innerHTML = `<div class="grid"><button class="r again" id="r1">Didn't know<span>${INTERVALS[1]}</span></button>
+    <button class="r hard" id="r2">With effort<span>${INTERVALS[2]}</span></button><button class="r good" id="r3">After a moment<span>${INTERVALS[3]}</span></button>
+    <button class="r easy" id="r4">Instantly<span>${INTERVALS[4]}</span></button></div>`;
+  [1, 2, 3, 4].forEach((n) => $(`r${n}`).onclick = () => rate(n));
+}
+function choice(c) {
+  $("rest").replaceChildren(...c.options.map((o, n) => { const b = document.createElement("button"); b.className = "opt";
+    const k = document.createElement("i"); k.textContent = "ABCD"[n]; b.append(k, document.createTextNode(o.text)); b.onclick = () => pick(c, n); return b; }));
+}
+function pick(c, n) {
+  const bs = [...$("rest").children]; bs.forEach((b) => b.disabled = true);
+  const r = c.options.findIndex((o) => o.right); bs[r].classList.add("right");
+  const note = (cls, text) => { const d = document.createElement("div"); d.className = `note ${cls}`; d.textContent = text; return d; };
+  if (n !== r) { bs[n].classList.add("wrong"); bs[n].after(note("trap", "Trap: " + c.options[n].trap)); $("rest").append(note("info", c.why));
+    $("act").innerHTML = '<button class="reveal" id="c">Continue</button>'; $("c").onclick = () => rate(1); }
+  else { $("act").innerHTML = '<textarea placeholder="Why is it right? (AI grades it at your next Claude session)"></textarea><p></p><button class="start" id="c">Save</button>'; $("c").onclick = () => rate(3); }
+}
+function rate(n) {
+  marks[i] = n === 1 ? "again" : "done"; s.done++; if (n === 1) s.again++;
+  const card = $("card"); if (card) { card.style.transform = `translateX(${n === 1 ? -110 : 110}%)`; card.style.opacity = 0; }
+  setTimeout(() => { i++; show(); }, 260);
+}
+function end() {
+  document.body.classList.remove("practising");
+  main.innerHTML = head() + `<h1>Nice — done for now</h1><div class="chips"><div class="tile"><b>${s.done}</b><span>answered</span></div>
+    <div class="tile"><b>${s.again}</b><span>again soon</span></div><div class="tile ai"><b>${s.aiWaiting}</b><span>for AI</span></div></div>
+    <div class="note info">${s.aiWaiting} open questions need the grader. Practise them in a Claude session.</div>
+    <button class="start">Open Claude</button>`;
+  $("x").onclick = home;
+}
+home();
+</script>
+</body>
+</html>
