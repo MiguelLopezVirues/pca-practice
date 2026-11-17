@@ -1,6 +1,7 @@
 import { GitHub, Offline, BadToken, Conflict } from "./github.js";
 import { Engine, STATE_DIR } from "./engine.js";
 import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js";
+import { inline, rich } from "./rich.js";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -8,11 +9,13 @@ const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
 const API = (onThisComputer && params.get("api")) || "https://api.github.com";
 const REPO = params.get("repo") || "MiguelLopezVirues/pca-study";
 const TOKEN_KEY = "pca-token";
+const TOKEN_EXPIRES_KEY = "pca-token-expires";
 const THEME_KEY = "pca-theme";
 const VAULT = "vault";  // the vault name Obsidian shows on the phone (the GitSync copy of pca-study/vault)
 const ANSWERS = `${STATE_DIR}/answers.jsonl`;
 const TOPICS = "pilot/practice/topics.json";
-const READ_DIRS = ["pilot/practice/items", STATE_DIR];
+const EXPLAIN = "pilot/practice/explain";
+const READ_DIRS = ["pilot/practice/items", STATE_DIR, EXPLAIN];
 const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "pilot/relevance_final.tsv",
   "pilot/practice/engine.py", "pilot/practice/config.json", TOPICS];
 const MAX_TRIES = 4;
@@ -79,6 +82,9 @@ let saveAgain = false;
 let idleTimer;
 let tab = "today";
 let session = { done: 0 };
+let explaining = false;  // a No or With effort answer is recorded and its explanation is open
+let explainIndex = null; // {files, items: Map(item id -> {note, blocks, diagrams})}
+const diagramUrls = new Map();
 const cardsView = { query: "", filter: "all", group: "topic", hiddenTopics: new Set(), hiddenChannels: new Set() };
 
 const now = () => new Date().toISOString();
@@ -91,7 +97,7 @@ const topicTitle = (id) => topics().find((t) => t.topic === id)?.title || id;
 function setState(state, detail = "") {
   $("status").dataset.state = state;
   $("status").textContent = LABELS[state] + (detail ? `: ${detail}` : "");
-  $("token-form").hidden = !["token-expired", "no-token"].includes(state);
+  if (["token-expired", "no-token"].includes(state)) openToken();
 }
 
 function setSync(state) {
@@ -288,7 +294,35 @@ function openSheet(id) {
 function closeSheets() {
   $("topic-sheet").hidden = true;
   $("filter-sheet").hidden = true;
-  $("veil").classList.remove("open");
+  if (localStorage.getItem(TOKEN_KEY)) $("token-form").hidden = true;
+  if ($("token-form").hidden) $("veil").classList.remove("open");
+}
+
+function openToken() {
+  $("token-cancel").hidden = !localStorage.getItem(TOKEN_KEY);
+  $("token-expires").value = localStorage.getItem(TOKEN_EXPIRES_KEY) || "";
+  $("token-form").hidden = false;
+  $("veil").classList.add("open");
+}
+
+function closeToken() {
+  $("token-form").hidden = true;
+  if ($("topic-sheet").hidden && $("filter-sheet").hidden) $("veil").classList.remove("open");
+}
+
+// GitHub does not let a web page read a token's expiry, so the date is the one entered with the token.
+function tokenDays() {
+  const exp = localStorage.getItem(TOKEN_EXPIRES_KEY);
+  return exp ? Math.ceil((new Date(`${exp}T00:00:00Z`) - Date.now()) / 86_400_000) : null;
+}
+
+function renderToken() {
+  const d = tokenDays();
+  const days = (n) => `${n} day${n === 1 ? "" : "s"}`;
+  $("token-days").textContent = d == null ? "Expiry date not set: tap to add it"
+    : d > 0 ? `Expires in ${days(d)}` : "Expired: enter a new one";
+  $("token-warning").hidden = d == null || d > 7;
+  if (d != null) $("token-warning-text").textContent = d > 0 ? `Token expires in ${days(d)}` : "Token expired";
 }
 
 // Read the note in Obsidian (the GitSync copy on the phone), then mark the topic read here to open its cards.
@@ -310,15 +344,83 @@ async function markRead(topicId) {
   render();
 }
 
+// ---------- explanations: the sheet blocks the key points quote, built on the desktop (build_explain.py) ----------
+function explanations() {
+  if (!explainIndex || explainIndex.files !== base.files) {
+    const items = new Map();
+    for (const [path, text] of Object.entries(base.files)) {
+      if (!path.startsWith(`${EXPLAIN}/`) || !path.endsWith(".json")) continue;
+      try {
+        const o = JSON.parse(text);
+        for (const [id, blocks] of Object.entries(o.items)) items.set(id, { topic: o.topic, note: o.note, blocks, diagrams: o.diagrams });
+      } catch { /* a broken file only loses its own explanations */ }
+    }
+    explainIndex = { files: base.files, items };
+  }
+  return explainIndex.items;
+}
+
+function diagramUrl(topic, n, svg) {
+  const key = `${topic}:${n}:${svg.length}`;
+  if (!diagramUrls.has(key)) diagramUrls.set(key, URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })));
+  return diagramUrls.get(key);
+}
+
+function renderExplain(host, item) {
+  const ex = explanations().get(item.id);
+  host.replaceChildren();
+  if (!ex) return false;
+  const drawn = new Set();
+  for (const b of ex.blocks) {
+    const div = el("div", "explain-block");
+    const a = el("a", "explain-source");
+    a.href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(`${ex.note.replace(/\.md$/, "")}#${b.heading}`)}`;
+    a.append(ic("book"), b.heading);
+    const body = el("div");
+    rich(body, b.text);
+    div.append(a);
+    for (const n of b.points) {
+      const why = el("p", "explain-for");
+      inline(why, `For: ${item.must?.[n]?.point || ""}`);
+      div.append(why);
+    }
+    div.append(body);
+    for (const d of b.diagrams) {
+      if (drawn.has(d) || !ex.diagrams[d]) continue;
+      drawn.add(d);
+      const box = el("div", "diagram-box");
+      const img = el("img", "diagram");
+      img.alt = `Diagram: ${b.heading}`;
+      img.src = diagramUrl(ex.topic, d, ex.diagrams[d]);
+      img.addEventListener("click", () => img.classList.toggle("zoom"));
+      box.append(img);
+      div.append(box);
+    }
+    host.append(div);
+  }
+  return true;
+}
+
+function pointLi(text) {
+  const li = el("li");
+  inline(li, text);
+  return li;
+}
+
 // ---------- practice ----------
 function showCard() {
   const due = engine.flashcards(now());
+  explaining = false;
   $("card-flip").classList.remove("flipped");
   $("card-back").hidden = true;
   $("ratings").hidden = true;
   $("know").hidden = false;
   $("came").hidden = true;
   $("reveal").hidden = false;
+  $("why").hidden = true;
+  $("explain").hidden = true;
+  $("explain").replaceChildren();
+  $("explain-next").hidden = true;
   const left = due.length;
   $("bar").style.width = `${(session.done / Math.max(1, session.done + left)) * 100}%`;
   if (!due.length) {
@@ -330,11 +432,11 @@ function showCard() {
   const item = engine.item(due[0]);
   const fronts = item.card.fronts?.length ? item.card.fronts : [item.card.front];
   const k = engine.reviewsOf(item.id) % fronts.length;
-  current = { id: item.id, shown: Date.now(), prompt: `card:${k + 1}` };
+  current = { id: item.id, item, shown: Date.now(), prompt: `card:${k + 1}` };
   $("flag-heavy").setAttribute("aria-pressed", "false");
   $("card-topic").textContent = `${CHANNEL.flashcard[1]} · ${topicTitle(item.id.split(".")[0])}`;
-  $("card-front").textContent = fronts[k];
-  $("card-back").textContent = item.card.back;
+  rich($("card-front"), fronts[k]);
+  rich($("card-back"), item.card.back);
   $("card-points").replaceChildren(...(item.must || []).map((m) => {
     const li = el("li");
     li.setAttribute("role", "checkbox");
@@ -342,7 +444,9 @@ function showCard() {
     li.tabIndex = 0;
     const box = el("span", "box");
     box.append(ic("check"));
-    li.append(box, el("span", "", m.point));
+    const text = el("span");
+    inline(text, m.point);
+    li.append(box, text);
     li.addEventListener("click", () => {
       li.setAttribute("aria-checked", String(li.getAttribute("aria-checked") !== "true"));
       suggest();
@@ -367,6 +471,7 @@ function suggest() {
 
 // After a reload from GitHub: keep the card on screen if it is still due, otherwise show the next one.
 function refreshCard() {
+  if (explaining) return render();
   const due = engine.flashcards(now());
   if (!(current && due.includes(current.id))) setState(showCard());
   render();
@@ -381,15 +486,26 @@ async function rate(rating) {
   if ($("flag-heavy").getAttribute("aria-pressed") === "true") answer.flags = ["too-much"];
   const ticked = [...$("card-points").children].flatMap((li, n) => (li.getAttribute("aria-checked") === "true" ? [n] : []));
   if (ticked.length) answer.ticked = ticked;
+  const { item } = current;
   current = null;
   session.done += 1;
   await outboxPut(answer);
   engine.record(answer);
   applied.push(answer);
-  const state = showCard();
-  setState(state);
+  const last = !engine.flashcards(now()).length;
+  // after No or With effort the explanation opens by itself; the next card waits for "Next card"
+  if ((rating === 1 || rating === 2) && renderExplain($("explain"), item)) {
+    explaining = true;
+    $("ratings").hidden = true;
+    $("why").hidden = true;
+    $("explain").hidden = false;
+    $("explain-next").hidden = false;
+    $("explain").scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    setState(showCard());
+  }
   await showPending();
-  scheduleSave(state === "done");
+  scheduleSave(last);
 }
 
 // ---------- Cards ----------
@@ -483,13 +599,16 @@ function preview(id) {
   const flash = item.channel === "flashcard";
   const fronts = flash ? (item.card.fronts?.length ? item.card.fronts : [item.card.front]) : [item.example_prompt || ""];
   $("preview-meta").textContent = `${CHANNEL[channelOf(item.channel)][1]} · ${topicTitle(id.split(".")[0])}`;
-  $("preview-front").textContent = fronts[0];
-  $("preview-back").textContent = flash ? item.card.back : "";
-  $("preview-points").replaceChildren(...(flash ? item.must || [] : []).map((m) => el("li", "", m.point)));
+  rich($("preview-front"), fronts[0]);
+  rich($("preview-back"), flash ? item.card.back : item.model_answer || "");
+  $("preview-back-label").textContent = flash ? "Answer" : "Model answer";
+  $("preview-points").replaceChildren(...(item.must || []).map((m) => pointLi(m.point)));
+  renderExplain($("preview-explain"), item);
   $("preview-back-box").hidden = true;
-  $("preview-reveal").hidden = !flash;
+  $("preview-reveal").hidden = false;
   $("preview-ai").hidden = flash;
   $("preview").hidden = false;
+  $("preview").scrollTop = 0;
 }
 
 // ---------- Progress ----------
@@ -554,6 +673,16 @@ $("reveal").addEventListener("click", () => {
   $("card-points-box").hidden = !$("card-points").children.length;
   $("ratings").hidden = false;
   $("reveal").hidden = true;
+  $("why").hidden = !(current && explanations().has(current.id));
+});
+$("why").addEventListener("click", () => {
+  if (!current || !renderExplain($("explain"), current.item)) return;
+  $("explain").hidden = false;
+  $("why").hidden = true;
+});
+$("explain-next").addEventListener("click", () => {
+  window.scrollTo({ top: 0 });
+  setState(showCard());
 });
 // "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
 $("know-no").addEventListener("click", () => rate(1));
@@ -585,7 +714,9 @@ document.querySelectorAll("[data-theme-choice]").forEach((b) => b.addEventListen
   localStorage.setItem(THEME_KEY, b.dataset.themeChoice);
   applyTheme();
 }));
-$("change-token").addEventListener("click", () => { $("token-form").hidden = false; $("token").focus(); });
+$("change-token").addEventListener("click", () => { openToken(); $("token").focus(); });
+$("token-warning").addEventListener("click", () => { openToken(); $("token").focus(); });
+$("token-cancel").addEventListener("click", closeToken);
 $("sync").addEventListener("click", () => save());
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden" && applied.length) save();
@@ -595,15 +726,20 @@ $("token-form").addEventListener("submit", async (ev) => {
   const token = $("token").value.trim();
   if (!token) return;
   localStorage.setItem(TOKEN_KEY, token);
+  const expires = $("token-expires").value;
+  if (expires) localStorage.setItem(TOKEN_EXPIRES_KEY, expires);
+  else localStorage.removeItem(TOKEN_EXPIRES_KEY);
   $("token").value = "";
+  closeToken();
+  renderToken();
   if (!engine) setState("loading");
   else setState(current ? "ready" : "done");
-  $("token-form").hidden = true;
   await save();
 });
 
 (async () => {
   applyTheme();
+  renderToken();
   await keepStorage();
   await showPending();
   enginePromise = Engine.start();

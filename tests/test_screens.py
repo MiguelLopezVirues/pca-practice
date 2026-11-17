@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from urllib.parse import quote
 
-from conftest import STATE, T0, desktop_apply, desktop_queue, items_by_id, open_page, rate, save_now
+from conftest import STATE, T0, desktop_apply, desktop_queue, items_by_id, open_page, plain, rate, save_now
 from test_page import answers, front_of, same_state
 
 
@@ -63,7 +63,7 @@ def test_start_opens_practice_and_close_goes_back(context, page_origin, repo, tm
     page = today(context, page_origin, repo)
     page.click("#start")
     first = [i for i in desktop_queue(seed, T0, tmp_path) if items_by_id(seed)[i]["channel"] == "flashcard"][0]
-    assert page.locator("#card-front").inner_text().strip() == front_of(seed, first).strip()
+    assert plain(page.locator("#card-front").inner_text()) == plain(front_of(seed, first))
     assert not page.locator("#tabs").is_visible()
     page.click("#practice-close")
     assert page.locator("#view-today").is_visible()
@@ -150,10 +150,10 @@ def test_preview_shows_the_card_as_in_review_and_records_nothing(context, page_o
     page.click("#tabs [data-tab='cards']")
     page.click(f".card-row[data-item='{flash}']")
     assert page.locator("#preview").is_visible()
-    assert page.locator("#preview-front").inner_text().strip() == front_of(seed, flash).strip()
+    assert plain(page.locator("#preview-front").inner_text()) == plain(front_of(seed, flash))
     assert not page.locator("#preview-back").is_visible()
     page.click("#preview-reveal")
-    assert page.locator("#preview-back").inner_text().strip() == items[flash]["card"]["back"].strip()
+    assert plain(page.locator("#preview-back").inner_text()) == plain(items[flash]["card"]["back"])
     assert page.locator("#preview-points li").count() == len(items[flash].get("must", []))
     page.click("#preview-close")
     assert page.locator("#pending").get_attribute("data-count") == "0"

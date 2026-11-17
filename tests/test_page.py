@@ -26,7 +26,7 @@ import time
 from datetime import timedelta
 
 from conftest import (FIRST_TOPIC, STATE, STATE_FILES, T0, desktop_apply, desktop_queue, items_by_id, open_page,
-                      page_url, rate, save_now, seed_files, settle)
+                      page_url, plain, rate, save_now, seed_files, settle)
 from fake_github import FakeRepo, serve
 
 
@@ -92,7 +92,7 @@ def test_shows_first_flashcard_of_the_engine_queue(context, page_origin, repo, t
     page = open_page(context, page_origin, repo)
     first = flashcard_queue(seed, T0, tmp_path)[0]
     assert page.locator("#status").get_attribute("data-state") == "ready"
-    assert page.locator("#card-front").inner_text().strip() == front_of(seed, first).strip()
+    assert plain(page.locator("#card-front").inner_text()) == plain(front_of(seed, first))
     assert not page.locator("#card-back").is_visible()
 
 
@@ -131,8 +131,8 @@ def test_reveal_shows_the_key_points_to_judge_by(context, page_origin, repo, tmp
     page = open_page(context, page_origin, repo)
     assert not page.locator("#card-points").is_visible()
     page.click("#reveal")
-    shown = [t.strip() for t in page.locator("#card-points li").all_inner_texts()]
-    assert shown == [m["point"].strip() for m in items_by_id(seed)[first]["must"]]
+    shown = [plain(t) for t in page.locator("#card-points li").all_inner_texts()]
+    assert shown == [plain(m["point"]) for m in items_by_id(seed)[first]["must"]]
 
 
 def test_too_much_flag_is_saved_with_the_answer(context, page_origin, repo):
@@ -142,6 +142,7 @@ def test_too_much_flag_is_saved_with_the_answer(context, page_origin, repo):
     page.click("#flag-heavy")
     assert page.locator("#flag-heavy").get_attribute("aria-pressed") == "true"
     page.click("#know-no")
+    page.click("#explain-next")
     rate(page, 3)
     save_now(page)
     log = answers(repo)
@@ -156,6 +157,7 @@ def test_two_steps_give_again_hard_good_easy(context, page_origin, repo):
     page.click("#know-yes")
     assert page.locator("#came-instantly").is_visible()
     page.click("#came-effort")
+    page.click("#explain-next")
     settle(page)
     for rating in (1, 3, 4):
         rate(page, rating)
@@ -165,12 +167,12 @@ def test_two_steps_give_again_hard_good_easy(context, page_origin, repo):
 
 def test_only_flashcards_are_shown(context, page_origin, repo):
     items = items_by_id(repo.files())
-    fronts = {f.strip() for it in items.values() if it["channel"] == "flashcard" for f in fronts_of(it)}
+    fronts = {plain(f) for it in items.values() if it["channel"] == "flashcard" for f in fronts_of(it)}
     page = open_page(context, page_origin, repo)
     for _ in range(4):
         if page.locator("#status").get_attribute("data-state") == "done":
             break
-        assert page.locator("#card-front").inner_text().strip() in fronts
+        assert plain(page.locator("#card-front").inner_text()) in fronts
         rate(page, 3)
 
 
@@ -262,7 +264,7 @@ def test_card_with_a_single_front_still_works(context, page_origin, tmp_path):
     r, server = serve_files(files)
     try:
         page = open_page(context, page_origin, r)
-        assert page.locator("#card-front").inner_text().strip() == front_of(files, first).strip()
+        assert plain(page.locator("#card-front").inner_text()) == plain(front_of(files, first))
         rate(page, 3)
         save_now(page)
         assert answers(r)[-1]["prompt"] == "card:1"

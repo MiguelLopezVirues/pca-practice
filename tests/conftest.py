@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import sys
 import threading
@@ -94,6 +95,8 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
     }
     for f in sorted((STUDY / "pilot/practice/items").glob("*.json")):
         files[f"pilot/practice/items/{f.name}"] = f.read_bytes()
+    for f in sorted((STUDY / "pilot/practice/explain").glob("*.json")):
+        files[f"pilot/practice/explain/{f.name}"] = f.read_bytes()
     if mutate_items:
         mutate_items(files)
     files.update(desktop_apply(files, [("read", FIRST_TOPIC, T0)], tmp))
@@ -206,7 +209,18 @@ STEPS = {1: ["#know-no"], 2: ["#know-yes", "#came-effort"], 3: ["#know-yes", "#c
 
 
 def rate(page, rating):
+    """No and With effort open the explanation first; 'Next card' moves on."""
     page.click("#reveal")
     for selector in STEPS[rating]:
         page.click(selector)
+    if rating in (1, 2):
+        page.click("#explain-next")
     return settle(page)
+
+
+def plain(text):
+    """Text without the markdown subset the page renders, whitespace collapsed: compares a source text with what shows."""
+    text = re.sub(r"(?m)^\|[-:| ]+\|\s*$", "", text)
+    text = re.sub(r"(?m)^\s*(- |\d+\. )", "", text)
+    text = text.replace("**", "").replace("`", "").replace("==", "").replace("|", " ")
+    return re.sub(r"\s+", " ", text).strip()

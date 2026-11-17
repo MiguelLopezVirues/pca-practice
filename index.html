@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
@@ -15,10 +15,18 @@
   <button id="sync" type="button" data-state="idle" title="Save now">Saved</button>
 </header>
 
-<form id="token-form" class="surface" hidden>
-  <label for="token">GitHub token for the study repository</label>
-  <input id="token" type="password" autocomplete="off" spellcheck="false">
-  <button id="token-save" class="btn primary" type="submit">Save</button>
+<form id="token-form" class="sheet" hidden>
+  <div class="grab"></div>
+  <h2>GitHub token</h2>
+  <p class="sub">The fine-grained token for the study repository. Paste it only here.</p>
+  <div class="stack2">
+    <label for="token">Token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false">
+    <label for="token-expires">Expires on (optional; GitHub shows it when you create the token)</label>
+    <input id="token-expires" type="date">
+    <button id="token-save" class="btn primary" type="submit">Save</button>
+    <button id="token-cancel" class="btn quiet" type="button">Cancel</button>
+  </div>
 </form>
 
 <main>
@@ -43,6 +51,7 @@
   </div>
   <p></p>
   <button id="start" class="btn primary" type="button">Start practice</button>
+  <button id="token-warning" class="rowi surface warn" type="button" hidden><div class="ic" data-icon="key"></div><div class="tx"><b id="token-warning-text"></b><span>Make a new one on GitHub and enter it here</span></div><span class="chev" data-icon="right"></span></button>
   <div class="label">Waiting for you</div>
   <div class="surface rows">
     <div class="rowi"><div class="ic acc" data-icon="spark"></div><div class="tx"><b id="ai-title">Open questions</b><span>Explain, trace and cases need the grader, in a Claude session</span></div></div>
@@ -60,18 +69,21 @@
   </div>
   <div id="card" hidden>
     <div class="stage"><div id="card-flip" class="card surface">
-      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><p id="card-front" class="q"></p></div>
+      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><div id="card-front" class="q"></div></div>
       <div id="card-back-face" class="face back">
         <div class="meta"><span data-icon="check"></span>Answer</div>
-        <p id="card-back" class="a" hidden></p>
+        <div id="card-back" class="a" hidden></div>
         <div id="card-points-box" class="pts" hidden>
           <h4>You knew it if you said each of these, in any words (tick them):</h4>
           <ul id="card-points"></ul>
         </div>
+        <button id="why" class="why" type="button" hidden><span data-icon="book"></span>Why? See it in the notes</button>
+        <div id="explain" class="explain" hidden></div>
       </div>
     </div></div>
     <div class="actions">
       <button id="reveal" class="btn primary" type="button">Show answer</button>
+      <button id="explain-next" class="btn primary" type="button" hidden>Next card</button>
       <div id="ratings" hidden>
         <div id="know">
           <p class="ask">Did you know it?</p>
@@ -158,7 +170,7 @@
   </div>
   <div class="label">Saving</div>
   <div class="surface rows">
-    <button id="change-token" class="rowi" type="button"><div class="ic" data-icon="key"></div><div class="tx"><b>GitHub token</b><span>Enter a new one</span></div><span class="chev" data-icon="right"></span></button>
+    <button id="change-token" class="rowi" type="button"><div class="ic" data-icon="key"></div><div class="tx"><b>GitHub token</b><span id="token-days">Enter a new one</span></div><span class="chev" data-icon="right"></span></button>
   </div>
 </section>
 </main>
@@ -175,12 +187,14 @@
   <div class="top"><button id="preview-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="eye"></span>Preview · nothing is recorded</span></div>
   <div class="card surface">
     <div class="meta"><span id="preview-meta"></span></div>
-    <p id="preview-front" class="q"></p>
+    <div id="preview-front" class="q"></div>
+    <p id="preview-ai" class="hint-line" hidden>Answered in a Claude session, where the grader reads your answer.</p>
     <div id="preview-back-box" hidden>
-      <p id="preview-back" class="a"></p>
+      <div class="meta"><span data-icon="check"></span><span id="preview-back-label">Answer</span></div>
+      <div id="preview-back" class="a"></div>
       <div class="pts"><h4>You knew it if you said each of these, in any words:</h4><ul id="preview-points"></ul></div>
+      <div id="preview-explain" class="explain"></div>
     </div>
-    <p id="preview-ai" class="ask" hidden>Open questions are answered in a Claude session, where the grader reads your answer.</p>
   </div>
   <div class="actions"><button id="preview-reveal" class="btn quiet" type="button">Show answer</button></div>
 </div>
