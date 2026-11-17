@@ -74,9 +74,10 @@ def desktop_queue(files: dict[str, bytes], now, tmp: Path) -> list[str]:
 
 
 def items_by_id(files: dict[str, bytes]) -> dict[str, dict]:
+    """Networking items and lean questions (items_lean), by id."""
     out = {}
     for path, data in files.items():
-        if path.startswith("pilot/practice/items/") and path.endswith(".json"):
+        if path.startswith(("pilot/practice/items/", "pilot/practice/items_lean/")) and path.endswith(".json"):
             for it in json.loads(data):
                 out[it["id"]] = it
     return out
@@ -95,6 +96,8 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
     }
     for f in sorted((STUDY / "pilot/practice/items").glob("*.json")):
         files[f"pilot/practice/items/{f.name}"] = f.read_bytes()
+    for f in sorted((STUDY / "pilot/practice/items_lean").glob("*.json")):
+        files[f"pilot/practice/items_lean/{f.name}"] = f.read_bytes()
     for f in sorted((STUDY / "pilot/practice/explain").glob("*.json")):
         files[f"pilot/practice/explain/{f.name}"] = f.read_bytes()
     if mutate_items:

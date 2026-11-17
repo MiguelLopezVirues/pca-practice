@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from urllib.parse import quote
 
-from conftest import STATE, T0, desktop_apply, desktop_queue, items_by_id, open_page, plain, rate, save_now
+from conftest import FIRST_TOPIC, STATE, T0, desktop_apply, desktop_queue, items_by_id, open_page, plain, rate, save_now
 from test_page import answers, front_of, same_state
 
 
@@ -71,7 +71,7 @@ def test_start_opens_practice_and_close_goes_back(context, page_origin, repo, tm
 
 def test_next_topic_links_its_note_and_can_be_marked_read(context, page_origin, repo, tmp_path):
     seed = repo.files()
-    nxt = topics(seed)[1]
+    nxt, after = [t for t in topics(seed) if t["topic"] != FIRST_TOPIC][:2]
     page = today(context, page_origin, repo)
     new_before = int(page.locator("#count-new").inner_text())
     assert nxt["title"] in page.locator("#next-topic").inner_text()
@@ -80,7 +80,7 @@ def test_next_topic_links_its_note_and_can_be_marked_read(context, page_origin, 
     assert href == "obsidian://open?vault=vault&file=" + quote(nxt["note"][:-3], safe="")
     page.click("#mark-read")
     page.wait_for_function(f"() => Number(document.querySelector('#count-new').innerText) > {new_before}")
-    assert topics(seed)[2]["title"] in page.locator("#next-topic").inner_text()
+    assert after["title"] in page.locator("#next-topic").inner_text()
     save_now(page)
     expected = desktop_apply(seed, [("read", nxt["topic"], T0)], tmp_path)
     same_state(repo.files(), {p: d for p, d in expected.items() if not p.endswith("answers.jsonl")})
@@ -171,7 +171,7 @@ def test_progress_shows_each_topic_in_reading_order(context, page_origin, repo):
     assert [b.get_attribute("data-topic") for b in bars.all()] == [t["topic"] for t in topics(seed)]
     first = bars.nth(0)
     def topic_of(it):  # the engine's rule
-        return it["unit"] if it["facet"] == "T" else it["unit"].rsplit(".", 1)[0]
+        return it["unit"] if it.get("facet") == "T" else it["unit"].rsplit(".", 1)[0]
     assert int(first.get_attribute("data-total")) == sum(1 for it in items.values()
                                                          if topic_of(it) == topics(seed)[0]["topic"])
     assert first.get_attribute("data-known") == "0"

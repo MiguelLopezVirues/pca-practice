@@ -22,9 +22,13 @@ def load():
     _mod = mod
     _eng = mod.Engine.load("${PRACTICE}")
 
+# Questions practised on the phone: flashcards, and multiple choice that asks no reason (turn 1).
+def _phone(it):
+    return it["channel"] == "flashcard" or (it["channel"] == "choice" and it.get("turn", 1) == 1)
+
 def flashcards(now):
     t = datetime.fromisoformat(now)
-    return json.dumps([i for i in _eng.queue(t) if _eng.items[i]["channel"] == "flashcard"])
+    return json.dumps([i for i in _eng.queue(t) if _phone(_eng.items[i])])
 
 def item(item_id):
     return json.dumps(_eng.items[item_id])
@@ -45,7 +49,7 @@ def mark_read(topic, now):
 def overview(now):
     t = datetime.fromisoformat(now)
     q = _eng.queue(t)
-    fc = [i for i in q if _eng.items[i]["channel"] == "flashcard"]
+    fc = [i for i in q if _phone(_eng.items[i])]
     days = [(t - timedelta(days=d)).date().isoformat() for d in range(6, -1, -1)]
     per_day = {d: 0 for d in days}
     for r in _eng.reviews:
@@ -63,7 +67,7 @@ def card_list(now):
     out = []
     for iid, it in _eng.items.items():
         c = _eng.cards.get(iid)
-        fc = it["channel"] == "flashcard"
+        fc = _phone(it)
         if iid in q:
             s = ("due" if c else "new") if fc else "ai"
         elif c is not None:
@@ -74,8 +78,10 @@ def card_list(now):
             s = "locked"
         card = it.get("card") or {}
         fronts = card.get("fronts") or ([card["front"]] if card.get("front") else [])
+        versions = (it.get("choice") or {}).get("versions") or []
+        text = fronts[0] if fronts else versions[0]["stem"] if versions else it.get("example_prompt", "")
         out.append({"id": iid, "topic": _mod._topic(it), "unit": it["unit"], "channel": it["channel"], "status": s,
-                    "text": fronts[0] if fronts else it.get("example_prompt", ""),
+                    "text": text,
                     "due": c.due.isoformat() if c else None})
     return json.dumps(out)
 `;

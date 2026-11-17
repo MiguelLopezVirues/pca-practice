@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-17.3";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-17.3";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-17.3";
-import { inline, rich } from "./rich.js?v=2026-11-17.3";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.1";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.1";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.1";
+import { inline, rich } from "./rich.js?v=2026-11-18.1";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-17.3";
+const VERSION = "2026-11-18.1";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -18,7 +18,7 @@ const VAULT = "vault";  // the vault name Obsidian shows on the phone (the GitSy
 const ANSWERS = `${STATE_DIR}/answers.jsonl`;
 const TOPICS = "pilot/practice/topics.json";
 const EXPLAIN = "pilot/practice/explain";
-const READ_DIRS = ["pilot/practice/items", STATE_DIR, EXPLAIN];
+const READ_DIRS = ["pilot/practice/items", "pilot/practice/items_lean", STATE_DIR, EXPLAIN];
 const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "pilot/relevance_final.tsv",
   "pilot/practice/engine.py", "pilot/practice/config.json", TOPICS];
 const MAX_TRIES = 4;
@@ -31,7 +31,7 @@ const LABELS = {
   "token-expired": "Token not accepted: enter a new one", "no-token": "Enter your token", error: "Something went wrong",
 };
 const SYNC_LABELS = { idle: "Saved", saving: "Saving…", offline: "Offline", "token-expired": "Not saved", error: "Not saved" };
-const CHANNEL = { flashcard: ["card", "Self-graded"], choice: ["choice", "Choice + why"], ai: ["pen", "Open · AI"] };
+const CHANNEL = { flashcard: ["card", "Self-graded"], choice: ["choice", "Multiple choice"], ai: ["pen", "Open · AI"] };
 const STATUS = { due: "Due now", new: "New", learn: "Learning", later: "Later", ai: "Needs AI", locked: "Opens later" };
 const FILTERS = ["all", "due", "new", "learn", "ai", "later", "locked"];
 
@@ -490,6 +490,10 @@ function showCard() {
   $("reveal").hidden = false;
   $("why").hidden = true;
   $("explain-view").hidden = true;
+  $("choice-options").hidden = true;
+  $("choice-why").hidden = true;
+  $("choice-continue").hidden = true;
+  $("came-back").hidden = false;
   const left = due.length;
   $("bar").style.width = `${(session.done / Math.max(1, session.done + left)) * 100}%`;
   if (!due.length) {
@@ -499,10 +503,11 @@ function showCard() {
     return "done";
   }
   const item = engine.item(due[0]);
+  $("flag-heavy").setAttribute("aria-pressed", "false");
+  if (item.channel === "choice") return showChoice(item);
   const fronts = item.card.fronts?.length ? item.card.fronts : [item.card.front];
   const k = engine.reviewsOf(item.id) % fronts.length;
   current = { id: item.id, item, shown: Date.now(), prompt: `card:${k + 1}` };
-  $("flag-heavy").setAttribute("aria-pressed", "false");
   $("card-topic").textContent = `${CHANNEL.flashcard[1]} · ${topicTitle(item.id.split(".")[0])}`;
   rich($("card-front"), fronts[k]);
   rich($("card-back"), item.card.back);
@@ -527,6 +532,58 @@ function showCard() {
   $("done").hidden = true;
   suggest();
   return "ready";
+}
+
+// Multiple choice: the versions in turn, the options shuffled; the pick is graded at once.
+function showChoice(item) {
+  const versions = item.choice.versions;
+  const k = engine.reviewsOf(item.id) % versions.length;
+  current = { id: item.id, item, shown: Date.now(), prompt: `choice:${k + 1}` };
+  const v = versions[k];
+  $("card-topic").textContent = `${CHANNEL.choice[1]} · ${topicTitle(item.id.split(".")[0])}`;
+  rich($("card-front"), v.stem);
+  const options = v.options.map((o) => ({ o, r: Math.random() })).sort((a, b) => a.r - b.r).map((x) => x.o);
+  $("choice-options").replaceChildren(...options.map((o) => {
+    const b = el("button", "opt");
+    b.type = "button";
+    b.dataset.right = String(Boolean(o.right));
+    const text = el("span", "opt-text");
+    inline(text, o.text);
+    b.append(text);
+    if (!o.right) {
+      const trap = el("span", "trap");
+      inline(trap, o.trap || "");
+      trap.hidden = true;
+      b.append(trap);
+    }
+    b.addEventListener("click", () => pickChoice(b));
+    return b;
+  }));
+  rich($("choice-why"), `**Why**: ${item.choice.why}`);
+  $("card-points").replaceChildren();
+  $("choice-options").hidden = false;
+  $("reveal").hidden = true;
+  $("card").hidden = false;
+  $("done").hidden = true;
+  return "ready";
+}
+
+function pickChoice(button) {
+  [...$("choice-options").children].forEach((b) => {
+    b.disabled = true;
+    if (b.dataset.right === "true") b.classList.add("right");
+  });
+  $("choice-why").hidden = false;
+  if (button.dataset.right === "true") {
+    $("ratings").hidden = false;
+    $("know").hidden = true;
+    $("came").hidden = false;
+    $("came-back").hidden = true;
+  } else {
+    button.classList.add("wrong");
+    button.querySelector(".trap").hidden = false;
+    $("choice-continue").hidden = false;
+  }
 }
 
 // Ticking every key point suggests Yes; ticking only some suggests No.
@@ -767,17 +824,21 @@ function openFilters() {
 function preview(id) {
   const item = engine.item(id);
   const flash = item.channel === "flashcard";
-  const fronts = flash ? (item.card.fronts?.length ? item.card.fronts : [item.card.front]) : [item.example_prompt || ""];
+  const choice = item.channel === "choice" ? item.choice : null;
+  const fronts = flash ? (item.card.fronts?.length ? item.card.fronts : [item.card.front])
+    : choice ? [choice.versions[0].stem] : [item.example_prompt || ""];
+  const choiceAnswer = choice && [...choice.versions[0].options.map((o) => (o.right ? `- ✓ **${o.text}**` : `- ✗ ${o.text}: ${o.trap}`)),
+    "", `**Why**: ${choice.why}`].join("\n");
   $("preview-meta").textContent = `${CHANNEL[channelOf(item.channel)][1]} · ${topicTitle(id.split(".")[0])}`;
   rich($("preview-front"), fronts[0]);
-  rich($("preview-back"), flash ? item.card.back : item.model_answer || "");
-  $("preview-back-label").textContent = flash ? "Answer" : "Model answer";
+  rich($("preview-back"), flash ? item.card.back : choice ? choiceAnswer : item.model_answer || "");
+  $("preview-back-label").textContent = flash || choice ? "Answer" : "Model answer";
   $("preview-points").replaceChildren(...(item.must || []).map((m) => pointLi(m.point)));
   $("preview-why").hidden = !explanations().has(id);
   $("preview-why").onclick = () => openExplain(item, false);
   $("preview-back-box").hidden = true;
   $("preview-reveal").hidden = false;
-  $("preview-ai").hidden = flash;
+  $("preview-ai").hidden = flash || Boolean(choice);
   $("preview").hidden = false;
   $("preview").scrollTop = 0;
 }
@@ -855,6 +916,7 @@ $("zoom-in").addEventListener("click", () => setZoom(zoom * 1.5));
 $("zoom-out").addEventListener("click", () => setZoom(zoom / 1.5));
 // "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
 $("know-no").addEventListener("click", () => rate(1));
+$("choice-continue").addEventListener("click", () => rate(1));
 $("know-yes").addEventListener("click", () => { $("know").hidden = true; $("came").hidden = false; });
 $("came-back").addEventListener("click", () => { $("came").hidden = true; $("know").hidden = false; });
 $("came-effort").addEventListener("click", () => rate(2));

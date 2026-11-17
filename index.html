@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-17.3">
-<script src="theme.js?v=2026-11-17.3"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-18.1">
+<script src="theme.js?v=2026-11-18.1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -70,7 +70,7 @@
   </div>
   <div id="card" hidden>
     <div class="stage"><div id="card-flip" class="card surface">
-      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><div id="card-front" class="q"></div></div>
+      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><div id="card-front" class="q"></div><div id="choice-options" class="opts" hidden></div><p id="choice-why" class="choice-why" hidden></p></div>
       <div id="card-back-face" class="face back">
         <div class="meta"><span data-icon="check"></span>Answer</div>
         <div id="card-back" class="a" hidden></div>
@@ -83,6 +83,7 @@
     </div></div>
     <div class="actions">
       <button id="reveal" class="btn primary" type="button">Show answer</button>
+      <button id="choice-continue" class="btn primary" type="button" hidden>Continue</button>
       <div id="ratings" hidden>
         <div id="know">
           <p class="ask">Did you know it?</p>
@@ -255,6 +256,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-17.3"></script>
+<script type="module" src="app.js?v=2026-11-18.1"></script>
 </body>
 </html>
