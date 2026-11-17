@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-17.2">
-<script src="theme.js?v=2026-11-17.2"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-17.3">
+<script src="theme.js?v=2026-11-17.3"></script>
 </head>
 <body>
 <header class="topbar">
@@ -79,12 +79,10 @@
           <ul id="card-points"></ul>
         </div>
         <button id="why" class="why" type="button" hidden><span data-icon="book"></span>Why? See it in the notes</button>
-        <div id="explain" class="explain" hidden></div>
       </div>
     </div></div>
     <div class="actions">
       <button id="reveal" class="btn primary" type="button">Show answer</button>
-      <button id="explain-next" class="btn primary" type="button" hidden>Next card</button>
       <div id="ratings" hidden>
         <div id="know">
           <p class="ask">Did you know it?</p>
@@ -207,10 +205,31 @@
       <div class="meta"><span data-icon="check"></span><span id="preview-back-label">Answer</span></div>
       <div id="preview-back" class="a"></div>
       <div class="pts"><h4>You knew it if you said each of these, in any words:</h4><ul id="preview-points"></ul></div>
-      <div id="preview-explain" class="explain"></div>
+      <button id="preview-why" class="why" type="button"><span data-icon="book"></span>Why? See it in the notes</button>
     </div>
   </div>
   <div class="actions"><button id="preview-reveal" class="btn quiet" type="button">Show answer</button></div>
+</div>
+
+<!-- the explanation: the sheet blocks the key points quote, as a page to read -->
+<div id="explain-view" class="overlay reader" hidden>
+  <div class="top"><button id="explain-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="book"></span><span id="explain-title">Why</span></span></div>
+  <div id="explain" class="explain"></div>
+  <div class="actions">
+    <button id="explain-next" class="btn primary" type="button" hidden>Next card</button>
+    <button id="explain-back" class="btn quiet" type="button">Back to the card</button>
+  </div>
+</div>
+
+<!-- one diagram, full screen, zoomable -->
+<div id="diagram-view" class="overlay diagram-view" hidden>
+  <div class="top">
+    <button id="diagram-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button>
+    <span id="diagram-title" class="diagram-title"></span>
+    <button id="zoom-out" class="zoom-btn" type="button" aria-label="Smaller">−</button>
+    <button id="zoom-in" class="zoom-btn" type="button" aria-label="Bigger">+</button>
+  </div>
+  <div class="diagram-scroll"><img id="diagram-img" alt=""></div>
 </div>
 
 <div id="veil" class="veil"></div>
@@ -236,6 +255,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-17.2"></script>
+<script type="module" src="app.js?v=2026-11-17.3"></script>
 </body>
 </html>

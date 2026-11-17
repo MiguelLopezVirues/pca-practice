@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-17.2";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-17.2";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-17.2";
-import { inline, rich } from "./rich.js?v=2026-11-17.2";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-17.3";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-17.3";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-17.3";
+import { inline, rich } from "./rich.js?v=2026-11-17.3";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-17.2";
+const VERSION = "2026-11-17.3";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -411,33 +411,65 @@ function renderExplain(host, item) {
   if (!ex) return false;
   const drawn = new Set();
   for (const b of ex.blocks) {
-    const div = el("div", "explain-block");
+    const div = el("section", "explain-block");
     const a = el("a", "explain-source");
     a.href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(`${ex.note.replace(/\.md$/, "")}#${b.heading}`)}`;
-    a.append(ic("book"), b.heading);
-    const body = el("div");
+    a.append(el("span", "", b.heading), ic("book"));
+    const body = el("div", "explain-text");
     rich(body, b.text);
-    div.append(a);
-    for (const n of b.points) {
-      const why = el("p", "explain-for");
-      inline(why, `For: ${item.must?.[n]?.point || ""}`);
-      div.append(why);
-    }
-    div.append(body);
+    const fors = el("ul", "explain-for");
+    for (const n of b.points) fors.append(pointLi(item.must?.[n]?.point || ""));
+    div.append(a, fors, body);
     for (const d of b.diagrams) {
       if (drawn.has(d) || !ex.diagrams[d]) continue;
       drawn.add(d);
-      const box = el("div", "diagram-box");
+      const box = el("button", "diagram-box");
+      box.type = "button";
+      box.setAttribute("aria-label", `Open the diagram of ${b.heading}`);
       const img = el("img", "diagram");
       img.alt = `Diagram: ${b.heading}`;
       img.src = diagramUrl(ex.topic, d, ex.diagrams[d]);
-      img.addEventListener("click", () => img.classList.toggle("zoom"));
-      box.append(img);
+      box.addEventListener("click", () => openDiagram(img.src, b.heading));
+      const hint = el("span", "diagram-hint", "Tap to enlarge");
+      box.append(img, hint);
       div.append(box);
     }
     host.append(div);
   }
   return true;
+}
+
+// The explanation as a page of its own, over the card. While `explaining`, closing it moves to the next card.
+function openExplain(item, afterAnswer) {
+  if (!renderExplain($("explain"), item)) return false;
+  $("explain-title").textContent = `Why · ${topicTitle(explanations().get(item.id).topic)}`;
+  $("explain-next").hidden = !afterAnswer;
+  $("explain-back").hidden = afterAnswer;
+  $("explain-view").hidden = false;
+  $("explain-view").scrollTop = 0;
+  return true;
+}
+
+function closeExplain() {
+  $("explain-view").hidden = true;
+  if (explaining) {
+    window.scrollTo({ top: 0 });
+    setState(showCard());
+  }
+}
+
+let zoom = 1;
+function setZoom(z) {
+  zoom = Math.min(5, Math.max(1, z));
+  $("diagram-img").style.width = `${zoom * 100}%`;
+}
+
+function openDiagram(src, title) {
+  $("diagram-img").src = src;
+  $("diagram-img").alt = `Diagram: ${title}`;
+  $("diagram-title").textContent = title;
+  setZoom(1);
+  $("diagram-view").hidden = false;
 }
 
 function pointLi(text) {
@@ -457,9 +489,7 @@ function showCard() {
   $("came").hidden = true;
   $("reveal").hidden = false;
   $("why").hidden = true;
-  $("explain").hidden = true;
-  $("explain").replaceChildren();
-  $("explain-next").hidden = true;
+  $("explain-view").hidden = true;
   const left = due.length;
   $("bar").style.width = `${(session.done / Math.max(1, session.done + left)) * 100}%`;
   if (!due.length) {
@@ -533,13 +563,10 @@ async function rate(rating) {
   applied.push(answer);
   const last = !engine.flashcards(now()).length;
   // after No or With effort the explanation opens by itself; the next card waits for "Next card"
-  if ((rating === 1 || rating === 2) && renderExplain($("explain"), item)) {
+  if ((rating === 1 || rating === 2) && openExplain(item, true)) {
     explaining = true;
     $("ratings").hidden = true;
     $("why").hidden = true;
-    $("explain").hidden = false;
-    $("explain-next").hidden = false;
-    $("explain").scrollIntoView({ behavior: "smooth", block: "start" });
   } else {
     setState(showCard());
   }
@@ -746,7 +773,8 @@ function preview(id) {
   rich($("preview-back"), flash ? item.card.back : item.model_answer || "");
   $("preview-back-label").textContent = flash ? "Answer" : "Model answer";
   $("preview-points").replaceChildren(...(item.must || []).map((m) => pointLi(m.point)));
-  renderExplain($("preview-explain"), item);
+  $("preview-why").hidden = !explanations().has(id);
+  $("preview-why").onclick = () => openExplain(item, false);
   $("preview-back-box").hidden = true;
   $("preview-reveal").hidden = false;
   $("preview-ai").hidden = flash;
@@ -818,15 +846,13 @@ $("reveal").addEventListener("click", () => {
   $("reveal").hidden = true;
   $("why").hidden = !(current && explanations().has(current.id));
 });
-$("why").addEventListener("click", () => {
-  if (!current || !renderExplain($("explain"), current.item)) return;
-  $("explain").hidden = false;
-  $("why").hidden = true;
-});
-$("explain-next").addEventListener("click", () => {
-  window.scrollTo({ top: 0 });
-  setState(showCard());
-});
+$("why").addEventListener("click", () => { if (current) openExplain(current.item, false); });
+$("explain-next").addEventListener("click", closeExplain);
+$("explain-back").addEventListener("click", closeExplain);
+$("explain-close").addEventListener("click", closeExplain);
+$("diagram-close").addEventListener("click", () => { $("diagram-view").hidden = true; });
+$("zoom-in").addEventListener("click", () => setZoom(zoom * 1.5));
+$("zoom-out").addEventListener("click", () => setZoom(zoom / 1.5));
 // "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
 $("know-no").addEventListener("click", () => rate(1));
 $("know-yes").addEventListener("click", () => { $("know").hidden = true; $("came").hidden = false; });

@@ -3,13 +3,16 @@
 Contract:
 - Card texts use a markdown subset rendered as DOM nodes: **bold** -> strong, `code` -> code, ==quote== -> mark,
   blank line -> paragraphs, "- " / "1. " lists, | tables |.
-- After revealing, `#why` opens `#explain`: one `.explain-block` per sheet block the key points quote, with
-  `a.explain-source` (obsidian://open?vault=vault&file=<note without .md>#<heading>, encoded), the block with the
-  quotes marked, and its diagrams as `img.diagram`.
-- No and With effort record the answer, then open `#explain` with `#explain-next`; the next card shows after it.
+- After revealing, `#why` opens the reader `#explain-view` over the card, with `#explain`: one `.explain-block`
+  per sheet block the key points quote, with `a.explain-source` (obsidian://open?vault=vault&file=<note without
+  .md>#<heading>, encoded), the block with the quotes marked, and its diagrams as `img.diagram`. `#explain-back`
+  closes it.
+- No and With effort record the answer, then open the reader with `#explain-next`; the next card shows after it.
   Instantly and A moment go straight to the next card.
 - The Cards preview shows the answer of every question (`#preview-reveal`): the back or the model answer, the key
-  points and `#preview-explain` with the same blocks.
+  points, and `#preview-why`, which opens the same reader.
+- Tapping a diagram opens `#diagram-view` with `#diagram-img`; `#zoom-in` / `#zoom-out` change its width;
+  `#diagram-close` closes it.
 - Settings `#change-token` opens `#token-form`; `#token-cancel` closes it. `#token-expires` (optional date) is kept;
   `#token-days` then says how many days are left.
 """
@@ -68,6 +71,10 @@ def test_why_shows_the_quoted_blocks_of_the_sheet(context, page_origin, repo, tm
     assert link.startswith("obsidian://open?vault=vault&file=")
     assert unquote(link.split("&file=", 1)[1]) == target
     assert page.locator("#explain .explain-block").first.locator("mark").count() == blocks[0]["text"].count("==") // 2
+    assert not page.locator("#explain-next").is_visible()
+    page.click("#explain-back")
+    assert not page.locator("#explain-view").is_visible()
+    assert page.locator("#know-no").is_visible()
 
 
 def test_no_records_then_explains_before_the_next_card(context, page_origin, repo):
@@ -112,12 +119,24 @@ def test_preview_shows_the_answer_of_an_open_question_with_its_diagrams(context,
     page.click("#preview-reveal")
     assert plain(page.locator("#preview-back").inner_text()) == plain(items[item]["model_answer"])
     assert page.locator("#preview-points li").count() == len(items[item]["must"])
-    assert page.locator("#preview-explain .explain-block").count() == len(blocks)
+    page.click("#preview-why")
+    assert page.locator("#explain-view").is_visible()
+    assert page.locator("#explain .explain-block").count() == len(blocks)
     n = len({d for b in blocks for d in b["diagrams"]})
-    imgs = page.locator("#preview-explain img.diagram")
+    imgs = page.locator("#explain img.diagram")
     assert imgs.count() == n
     imgs.first.scroll_into_view_if_needed()
-    page.wait_for_function("() => document.querySelector('#preview-explain img.diagram').naturalWidth > 0")
+    page.wait_for_function("() => document.querySelector('#explain img.diagram').naturalWidth > 0")
+    imgs.first.click()
+    assert page.locator("#diagram-view").is_visible()
+    assert page.locator("#diagram-img").get_attribute("src").startswith("blob:")
+    before = page.locator("#diagram-img").bounding_box()["width"]
+    page.click("#zoom-in")
+    assert page.locator("#diagram-img").bounding_box()["width"] > before
+    page.click("#diagram-close")
+    assert not page.locator("#diagram-view").is_visible()
+    page.click("#explain-back")
+    assert page.locator("#preview").is_visible()
 
 
 def test_token_sheet_closes_and_tells_the_days_left(context, page_origin, repo):
