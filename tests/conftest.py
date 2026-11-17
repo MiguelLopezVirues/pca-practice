@@ -89,6 +89,7 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
         "pilot/relevance_final.tsv": (STUDY / "pilot/relevance_final.tsv").read_bytes(),
         "pilot/practice/engine.py": (STUDY / "pilot/practice/engine.py").read_bytes(),
         "pilot/practice/config.json": json.dumps(TEST_CONFIG).encode(),
+        "pilot/practice/topics.json": (STUDY / "pilot/practice/topics.json").read_bytes(),
         "README.md": b"unrelated file the page never needs\n",
     }
     for f in sorted((STUDY / "pilot/practice/items").glob("*.json")):
@@ -163,8 +164,9 @@ def page_url(origin, repo, extra=""):
     return f"{origin}/index.html?api={repo.api}&repo={repo.owner}/{repo.name}{extra}"
 
 
-def open_page(context, origin, repo, token="good-token"):
-    """Open the page; enter the token if the form shows; wait until it has settled."""
+def open_page(context, origin, repo, token="good-token", practice=True):
+    """Open the page; enter the token if the form shows; wait until it has settled.
+    With practice=True, start practice from Today when there is something to practise."""
     page = context.new_page()
     page.goto(page_url(origin, repo))
     page.wait_for_function(
@@ -174,7 +176,9 @@ def open_page(context, origin, repo, token="good-token"):
     if token is not None and page.locator("#token-form").is_visible():
         page.fill("#token", token)
         page.click("#token-save")
-    settle(page)
+    if settle(page) == "ready" and practice:
+        page.click("#start")
+        page.wait_for_selector("#view-practice", state="visible")
     return page
 
 

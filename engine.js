@@ -8,16 +8,18 @@ export const ENGINE_STATE = ["state.json", "reviews.tsv", "credits.tsv", "unlock
 
 const GLUE = `
 import importlib.util, json, sys
-from datetime import datetime
+from datetime import datetime, timedelta
 sys.path.insert(0, "/vendor")
 _eng = None
+_mod = None
 
 def load():
-    global _eng
+    global _eng, _mod
     spec = importlib.util.spec_from_file_location("engine", "${PRACTICE}/engine.py")
     mod = importlib.util.module_from_spec(spec)
     sys.modules["engine"] = mod
     spec.loader.exec_module(mod)
+    _mod = mod
     _eng = mod.Engine.load("${PRACTICE}")
 
 def flashcards(now):
@@ -33,6 +35,49 @@ def reviews_of(item_id):
 def record(item_id, rating, now, minutes, prompt):
     _eng.record(item_id, int(rating), datetime.fromisoformat(now), prompt_id=prompt, minutes=round(float(minutes), 2))
     _eng.save("${PRACTICE}")
+
+def mark_read(topic, now):
+    warnings = _eng.mark_read(topic, datetime.fromisoformat(now))
+    _eng.save("${PRACTICE}")
+    return json.dumps(warnings or [])
+
+# Today: flashcards due again and new, questions for an AI session, topics read, answers per day (last 7 days).
+def overview(now):
+    t = datetime.fromisoformat(now)
+    q = _eng.queue(t)
+    fc = [i for i in q if _eng.items[i]["channel"] == "flashcard"]
+    days = [(t - timedelta(days=d)).date().isoformat() for d in range(6, -1, -1)]
+    per_day = {d: 0 for d in days}
+    for r in _eng.reviews:
+        d = str(r.get("time", ""))[:10]
+        if d in per_day:
+            per_day[d] += 1
+    return json.dumps({"due": sum(1 for i in fc if i in _eng.cards), "new": sum(1 for i in fc if i not in _eng.cards),
+                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day})
+
+# Every question with its status: due | new | learn | later | ai | locked.
+def card_list(now):
+    from fsrs import State
+    t = datetime.fromisoformat(now)
+    q = set(_eng.queue(t))
+    out = []
+    for iid, it in _eng.items.items():
+        c = _eng.cards.get(iid)
+        fc = it["channel"] == "flashcard"
+        if iid in q:
+            s = ("due" if c else "new") if fc else "ai"
+        elif c is not None:
+            s = "learn" if c.state in (State.Learning, State.Relearning) else "later"
+        elif _eng._is_open(iid):
+            s = "new" if fc else "ai"
+        else:
+            s = "locked"
+        card = it.get("card") or {}
+        fronts = card.get("fronts") or ([card["front"]] if card.get("front") else [])
+        out.append({"id": iid, "topic": _mod._topic(it), "channel": it["channel"], "status": s,
+                    "text": fronts[0] if fronts else it.get("example_prompt", ""),
+                    "due": c.due.isoformat() if c else None})
+    return json.dumps(out)
 `;
 
 export class Engine {
@@ -79,7 +124,18 @@ export class Engine {
   }
 
   record(answer) {
+    if (answer.type === "read") {
+      return JSON.parse(this.py.globals.get("mark_read")(answer.topic, answer.time));
+    }
     this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1");
+  }
+
+  overview(nowIso) {
+    return JSON.parse(this.py.globals.get("overview")(nowIso));
+  }
+
+  cardList(nowIso) {
+    return JSON.parse(this.py.globals.get("card_list")(nowIso));
   }
 
   stateFiles() {

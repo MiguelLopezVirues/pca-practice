@@ -2,63 +2,210 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self'">
 <title>PCA practice</title>
 <link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
 </head>
 <body>
-<header>
+<header class="topbar">
   <span id="status" data-state="loading">Loading…</span>
   <span id="pending" data-count="0"></span>
   <button id="sync" type="button" data-state="idle" title="Save now">Saved</button>
 </header>
 
-<form id="token-form" hidden>
+<form id="token-form" class="surface" hidden>
   <label for="token">GitHub token for the study repository</label>
   <input id="token" type="password" autocomplete="off" spellcheck="false">
-  <button id="token-save" type="submit">Save</button>
+  <button id="token-save" class="btn primary" type="submit">Save</button>
 </form>
 
-<main id="card" hidden>
-  <p id="card-front"></p>
-  <button id="reveal" type="button">Show answer</button>
-  <p id="card-back" hidden></p>
-  <div id="card-points-box" hidden>
-    <p class="ask">You knew it if your answer says each of these, in any words:</p>
-    <ul id="card-points"></ul>
-  </div>
-  <div id="ratings" hidden>
-    <button id="flag-heavy" type="button" class="flag" aria-pressed="false">Too much for one card</button>
-    <p class="ask">Did you know it?</p>
-    <div class="row two">
-      <button id="know-no" type="button">No</button>
-      <button id="know-yes" type="button">Yes</button>
+<main>
+<!-- Today -->
+<section id="view-today" class="view">
+  <h1>Today</h1>
+  <div class="surface">
+    <div class="hero">
+      <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" fill="none" stroke-width="7" class="ring-track"/>
+        <circle id="ring-fill" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" class="ring-fill" transform="rotate(-90 50 50)"/>
+        <text id="ring-left" class="n" x="50" y="53" text-anchor="middle">0</text>
+        <text class="s" x="50" y="68" text-anchor="middle">LEFT TODAY</text>
+      </svg>
+      <div><h2 id="hero-title">Ready when you are</h2><p id="hero-sub"></p></div>
     </div>
-    <div id="came" hidden>
-      <p class="ask">How did it come?</p>
-      <div class="row three">
-        <button id="came-instantly" type="button">Instantly</button>
-        <button id="came-moment" type="button">After a moment</button>
-        <button id="came-effort" type="button">With effort</button>
+    <div class="stats">
+      <div><b id="count-due">0</b><span><i class="dot due"></i>Due</span></div>
+      <div><b id="count-new">0</b><span><i class="dot new"></i>New</span></div>
+      <div><b id="count-ai">0</b><span><i class="dot ai"></i>For AI</span></div>
+    </div>
+  </div>
+  <p></p>
+  <button id="start" class="btn primary" type="button">Start practice</button>
+  <div class="label">Waiting for you</div>
+  <div class="surface rows">
+    <div class="rowi"><div class="ic acc" data-icon="spark"></div><div class="tx"><b id="ai-title">Open questions</b><span>Explain, trace and cases need the grader, in a Claude session</span></div></div>
+    <button id="next-topic" class="rowi" type="button"><div class="ic" data-icon="book"></div><div class="tx"><b>Next topic</b><span id="next-topic-name"></span></div><span class="chev" data-icon="right"></span></button>
+  </div>
+  <div class="label">This week</div>
+  <div id="week" class="surface week"></div>
+</section>
+
+<!-- Practice -->
+<section id="view-practice" class="view" hidden>
+  <div class="top">
+    <button id="practice-close" class="iconbtn" type="button" aria-label="Back to Today" data-icon="close"></button>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <div id="card" hidden>
+    <div class="stage"><div id="card-flip" class="card surface">
+      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><p id="card-front" class="q"></p></div>
+      <div id="card-back-face" class="face back">
+        <div class="meta"><span data-icon="check"></span>Answer</div>
+        <p id="card-back" class="a" hidden></p>
+        <div id="card-points-box" class="pts" hidden>
+          <h4>You knew it if you said each of these, in any words (tick them):</h4>
+          <ul id="card-points"></ul>
+        </div>
+      </div>
+    </div></div>
+    <div class="actions">
+      <button id="reveal" class="btn primary" type="button">Show answer</button>
+      <div id="ratings" hidden>
+        <div id="know">
+          <p class="ask">Did you know it?</p>
+          <div class="grid2">
+            <button id="know-no" class="rate no" type="button"><span data-icon="x"></span>No<small>a point missing or wrong</small></button>
+            <button id="know-yes" class="rate yes" type="button"><span data-icon="check"></span>Yes<small>every key point</small></button>
+          </div>
+        </div>
+        <div id="came" hidden>
+          <p class="ask">How did it come?</p>
+          <div class="grid3">
+            <button id="came-instantly" class="rate easy" type="button"><span data-icon="zap"></span>Instantly<small>about 2 s, sure</small></button>
+            <button id="came-moment" class="rate good" type="button"><span data-icon="clock"></span>A moment<small>a few seconds</small></button>
+            <button id="came-effort" class="rate hard" type="button"><span data-icon="mount"></span>With effort<small>hesitated</small></button>
+          </div>
+          <div class="center"><button id="came-back" class="flag" type="button">← Back</button></div>
+        </div>
+        <div class="center"><button id="flag-heavy" class="flag" type="button" aria-pressed="false"><span data-icon="flag"></span>Too much for one card</button></div>
+        <details id="rules">
+          <summary>How to rate</summary>
+          <ul>
+            <li>Say or think your answer <em>before</em> revealing.</li>
+            <li>Judge the <strong>meaning</strong> against the key points, not the wording of the back: "the one that sends the request" and "the one requesting" are the same point. Extra details are fine unless they are wrong.</li>
+            <li><strong>No</strong>: nothing came, a key point was missing or wrong, or you only recognised it after seeing the back.</li>
+            <li><strong>Instantly</strong>: at once (about two seconds), you would bet on it.</li>
+            <li><strong>A moment</strong>: a few seconds, and sure once it came.</li>
+            <li><strong>With effort</strong>: you hesitated between two answers, rebuilt it by reasoning, took about ten seconds or more, or got it right without being sure.</li>
+            <li>Rate this answer only, not how you feel about the topic.</li>
+          </ul>
+        </details>
       </div>
     </div>
-    <details id="rules" open>
-      <summary>How to rate</summary>
-      <ul>
-        <li>Say or think your answer <em>before</em> revealing.</li>
-        <li>Judge the <strong>meaning</strong> against the key points, not the wording of the back: "the one that sends the request" and "the one requesting" are the same point. Extra details are fine unless they are wrong.</li>
-        <li><strong>No</strong>: nothing came, a key point was missing or wrong, or you only recognised it after seeing the back.</li>
-        <li><strong>Instantly</strong>: at once (about two seconds), you would bet on it.</li>
-        <li><strong>After a moment</strong>: a few seconds, and sure once it came.</li>
-        <li><strong>With effort</strong>: you hesitated between two answers, rebuilt it by reasoning, took about ten seconds or more, or got it right without being sure.</li>
-        <li>Rate this answer only, not how you feel about the topic.</li>
-      </ul>
-    </details>
   </div>
+  <div id="done" class="center" hidden>
+    <h1>Done for now</h1>
+    <p class="muted">Nothing due now. Answers save by themselves.</p>
+    <button id="done-home" class="btn quiet" type="button">Back to Today</button>
+  </div>
+</section>
+
+<!-- Cards -->
+<section id="view-cards" class="view" hidden>
+  <h1>Cards</h1>
+  <div class="searchrow">
+    <label class="search"><span data-icon="search"></span><input id="cards-search" placeholder="Search questions" autocomplete="off"></label>
+    <button id="open-filters" class="fbtn" type="button" aria-label="Filters"><span data-icon="filter"></span><b id="filter-count" hidden></b></button>
+  </div>
+  <div id="cards-group" class="seg">
+    <button type="button" data-group="topic" class="on">Topic</button>
+    <button type="button" data-group="channel">Type</button>
+    <button type="button" data-group="status">Status</button>
+  </div>
+  <div id="cards-filters" class="chips"></div>
+  <div id="cards-list"></div>
+  <p id="cards-empty" class="ask" hidden>No cards match.</p>
+</section>
+
+<!-- Progress -->
+<section id="view-progress" class="view" hidden>
+  <h1>Progress</h1>
+  <div class="surface big2">
+    <div><b id="week-answers">0</b><span>answered in the last 7 days</span></div>
+    <div><b id="known-total">0</b><span>cards known</span></div>
+  </div>
+  <div class="label">Topics</div>
+  <div id="topics" class="surface"></div>
+  <div class="legend"><span><i class="k"></i>Known</span><span><i class="l"></i>Learning</span><span><i class="n"></i>Not started</span></div>
+  <div class="label">Answers per day</div>
+  <div id="per-day" class="surface cols"></div>
+</section>
+
+<!-- Settings -->
+<section id="view-settings" class="view" hidden>
+  <h1>Settings</h1>
+  <div class="label">Appearance</div>
+  <div class="surface rows">
+    <div class="rowi"><div class="ic" data-icon="sun"></div><div class="tx"><b>Theme</b></div>
+      <div id="theme-choice" class="seg narrow">
+        <button type="button" data-theme-choice="system">Phone</button>
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+      </div>
+    </div>
+  </div>
+  <div class="label">Saving</div>
+  <div class="surface rows">
+    <button id="change-token" class="rowi" type="button"><div class="ic" data-icon="key"></div><div class="tx"><b>GitHub token</b><span>Enter a new one</span></div><span class="chev" data-icon="right"></span></button>
+  </div>
+</section>
 </main>
 
-<p id="done" hidden>Nothing due now.</p>
+<nav id="tabs" class="tabs">
+  <button type="button" data-tab="today" class="on"><span data-icon="home"></span>Today</button>
+  <button type="button" data-tab="cards"><span data-icon="cards"></span>Cards</button>
+  <button type="button" data-tab="progress"><span data-icon="chart"></span>Progress</button>
+  <button type="button" data-tab="settings"><span data-icon="gear"></span>Settings</button>
+</nav>
+
+<!-- card preview: as in review, nothing recorded -->
+<div id="preview" class="overlay" hidden>
+  <div class="top"><button id="preview-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="eye"></span>Preview · nothing is recorded</span></div>
+  <div class="card surface">
+    <div class="meta"><span id="preview-meta"></span></div>
+    <p id="preview-front" class="q"></p>
+    <div id="preview-back-box" hidden>
+      <p id="preview-back" class="a"></p>
+      <div class="pts"><h4>You knew it if you said each of these, in any words:</h4><ul id="preview-points"></ul></div>
+    </div>
+    <p id="preview-ai" class="ask" hidden>Open questions are answered in a Claude session, where the grader reads your answer.</p>
+  </div>
+  <div class="actions"><button id="preview-reveal" class="btn quiet" type="button">Show answer</button></div>
+</div>
+
+<div id="veil" class="veil"></div>
+<div id="topic-sheet" class="sheet" hidden>
+  <div class="grab"></div>
+  <h2 id="topic-title"></h2>
+  <p id="topic-sub" class="sub"></p>
+  <div class="stack2">
+    <a id="read-link" class="btn quiet"><span data-icon="book"></span>Read the note in Obsidian</a>
+    <button id="mark-read" class="btn primary" type="button">I've read it · open its cards</button>
+    <p class="ask">Marking it read saves to GitHub like an answer; its cards join Today.</p>
+  </div>
+</div>
+<div id="filter-sheet" class="sheet" hidden>
+  <div class="grab"></div>
+  <h2>Filter cards</h2>
+  <div class="label">Topic</div><div id="filter-topics" class="checks"></div>
+  <div class="label">Type</div><div id="filter-channels" class="checks"></div>
+  <div class="stack2">
+    <button id="filter-done" class="btn primary" type="button">Show cards</button>
+    <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
+  </div>
+</div>
 <script type="module" src="app.js"></script>
 </body>
 </html>
