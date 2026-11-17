@@ -1,7 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js";
-import { Engine, STATE_DIR } from "./engine.js";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js";
-import { inline, rich } from "./rich.js";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-17.2";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-17.2";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-17.2";
+import { inline, rich } from "./rich.js?v=2026-11-17.2";
+
+// Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
+const VERSION = "2026-11-17.2";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -50,6 +53,7 @@ const P = {
   key: "M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7z",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4", filter: "M3 5h18l-7 8v6l-4 2v-8z",
   book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5",
+  image: "M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01",
 };
 const SVG = "http://www.w3.org/2000/svg";
 function ic(name) {
@@ -85,7 +89,8 @@ let session = { done: 0 };
 let explaining = false;  // a No or With effort answer is recorded and its explanation is open
 let explainIndex = null; // {files, items: Map(item id -> {note, blocks, diagrams})}
 const diagramUrls = new Map();
-const cardsView = { query: "", filter: "all", group: "topic", hiddenTopics: new Set(), hiddenChannels: new Set() };
+const cardsView = { query: "", filter: "all", group: "topic", hiddenTopics: new Set(), hiddenChannels: new Set(), onlyDiagrams: false };
+const openTopics = new Set();
 
 const now = () => new Date().toISOString();
 const channelOf = (c) => (CHANNEL[c] ? c : "ai");
@@ -241,16 +246,31 @@ async function keep(event, soon) {
 function show(name) {
   tab = name;
   document.body.classList.toggle("practising", name === "practice");
-  for (const v of ["today", "practice", "cards", "progress", "settings"]) $(`view-${v}`).hidden = v !== name;
+  for (const v of ["today", "practice", "topics", "cards", "progress", "settings"]) $(`view-${v}`).hidden = v !== name;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
   render();
 }
 
 function render() {
+  renderSettings();
   if (!engine || !base) return;
   if (tab === "today") renderToday();
+  else if (tab === "topics") renderTopics();
   else if (tab === "cards") renderCards();
   else if (tab === "progress") renderProgress();
+}
+
+function renderSettings() {
+  $("page-version").textContent = `Page version ${VERSION}`;
+  $("explain-count").textContent = base ? `Explanations for ${explanations().size} questions` : "Not loaded yet";
+}
+
+// Phones keep a page open for days: when a newer one is published, offer to reload it.
+async function checkVersion() {
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+    $("update").hidden = (await res.json()).version === VERSION;
+  } catch { /* offline: checked again next time */ }
 }
 
 // ---------- Today ----------
@@ -348,16 +368,35 @@ async function markRead(topicId) {
 function explanations() {
   if (!explainIndex || explainIndex.files !== base.files) {
     const items = new Map();
+    const ideas = new Map();
     for (const [path, text] of Object.entries(base.files)) {
       if (!path.startsWith(`${EXPLAIN}/`) || !path.endsWith(".json")) continue;
       try {
         const o = JSON.parse(text);
         for (const [id, blocks] of Object.entries(o.items)) items.set(id, { topic: o.topic, note: o.note, blocks, diagrams: o.diagrams });
+        for (const [unit, idea] of Object.entries(o.ideas || {})) ideas.set(unit, { ...idea, unit, topic: o.topic, n: Number(unit.split(".").pop()) });
       } catch { /* a broken file only loses its own explanations */ }
     }
-    explainIndex = { files: base.files, items };
+    explainIndex = { files: base.files, items, ideas };
   }
   return explainIndex.items;
+}
+
+function ideas() {
+  explanations();
+  return explainIndex.ideas;
+}
+
+const hasDiagram = (id) => Boolean(explanations().get(id)?.blocks.some((b) => b.diagrams.length));
+
+// Every question with its status, unit and whether its explanation has a diagram.
+function cardList() {
+  return engine.cardList(now()).map((c) => ({ ...c, diagram: hasDiagram(c.id) }));
+}
+
+function ideaTitle(unit, topic) {
+  const idea = ideas().get(unit);
+  return idea ? `${topicTitle(idea.topic)} · ${idea.n}. ${idea.label}` : `${topicTitle(topic)} · across the topic`;
 }
 
 function diagramUrl(topic, n, svg) {
@@ -513,7 +552,33 @@ function rowMatches(c, ignoreStatus = false) {
   const q = cardsView.query;
   return (!q || c.text.toLowerCase().includes(q) || topicTitle(c.topic).toLowerCase().includes(q))
     && !cardsView.hiddenTopics.has(c.topic) && !cardsView.hiddenChannels.has(channelOf(c.channel))
+    && (!cardsView.onlyDiagrams || c.diagram)
     && (ignoreStatus || cardsView.filter === "all" || c.status === cardsView.filter);
+}
+
+function cardRow(c) {
+  const row = el("button", "rowi card-row");
+  row.type = "button";
+  Object.assign(row.dataset, { item: c.id, status: c.status, topic: c.topic, channel: channelOf(c.channel),
+    diagram: c.diagram ? "yes" : "no" });
+  const icon = el("div", "ic");
+  icon.append(ic(CHANNEL[channelOf(c.channel)][0]));
+  const tx = el("div", "tx");
+  const p = el("p");
+  inline(p, c.text.replace(/\n+/g, " "));
+  const meta = el("div", "row-meta");
+  meta.append(statusTag(c.status, c.due));
+  if (c.diagram) {
+    const d = el("span", "status has-diagram");
+    d.append(ic("image"), "Diagram");
+    meta.append(d);
+  }
+  tx.append(p, meta);
+  const chev = el("span", "chev");
+  chev.append(ic("eye"));
+  row.append(icon, tx, chev);
+  row.addEventListener("click", () => preview(c.id));
+  return row;
 }
 
 function statusTag(status, due) {
@@ -526,11 +591,13 @@ function statusTag(status, due) {
 }
 
 function renderCards() {
-  const all = engine.cardList(now());
+  const all = cardList();
   const order = topics().map((t) => t.topic);
   const keyOf = (c) => (cardsView.group === "topic" ? topicTitle(c.topic)
+    : cardsView.group === "idea" ? ideaTitle(c.unit, c.topic)
     : cardsView.group === "channel" ? CHANNEL[channelOf(c.channel)][1] : STATUS[c.status]);
   const rank = (c) => (cardsView.group === "topic" ? order.indexOf(c.topic)
+    : cardsView.group === "idea" ? order.indexOf(c.topic) * 100 + (ideas().get(c.unit)?.n ?? 99)
     : cardsView.group === "channel" ? Object.keys(CHANNEL).indexOf(channelOf(c.channel)) : Object.keys(STATUS).indexOf(c.status));
   const groups = new Map();
   for (const c of [...all].sort((a, b) => rank(a) - rank(b))) {
@@ -541,19 +608,9 @@ function renderCards() {
   $("cards-list").replaceChildren(...[...groups].flatMap(([name, list]) => {
     const sec = el("div", "surface rows");
     for (const c of list) {
-      const row = el("button", "rowi card-row");
-      row.type = "button";
-      Object.assign(row.dataset, { item: c.id, status: c.status, topic: c.topic, channel: channelOf(c.channel) });
-      const icon = el("div", "ic");
-      icon.append(ic(CHANNEL[channelOf(c.channel)][0]));
-      const tx = el("div", "tx");
-      tx.append(el("p", "", c.text), statusTag(c.status, c.due));
-      const chev = el("span", "chev");
-      chev.append(ic("eye"));
-      row.append(icon, tx, chev);
+      const row = cardRow(c);
       row.hidden = !rowMatches(c);
       if (!row.hidden) shown += 1;
-      row.addEventListener("click", () => preview(c.id));
       sec.append(row);
     }
     const label = el("div", "label", name);
@@ -572,9 +629,95 @@ function renderCards() {
     return b;
   }));
   document.querySelectorAll("#cards-group button").forEach((b) => b.classList.toggle("on", b.dataset.group === cardsView.group));
-  const n = cardsView.hiddenTopics.size + cardsView.hiddenChannels.size;
+  const n = cardsView.hiddenTopics.size + cardsView.hiddenChannels.size + (cardsView.onlyDiagrams ? 1 : 0);
   $("filter-count").hidden = !n;
   $("filter-count").textContent = String(n);
+}
+
+// ---------- Topics: topic -> core ideas -> questions; "Builds on" / "Needed by" follow the idea links ----------
+function ideaChip(unit, cls, from) {
+  const idea = ideas().get(unit);
+  const b = el("button", `chip ${cls}`);
+  b.type = "button";
+  b.dataset.unit = unit;
+  const where = idea && idea.topic !== from ? ` · ${topicTitle(idea.topic)}` : "";
+  b.append(idea ? `${idea.n}. ${idea.label}${where}` : unit);
+  b.addEventListener("click", () => goToIdea(unit));
+  return b;
+}
+
+function goToIdea(unit) {
+  const target = document.querySelector(`.idea[data-unit="${CSS.escape(unit)}"]`);
+  if (!target) return;
+  const card = target.closest(".topic-card");
+  card.open = true;
+  openTopics.add(card.dataset.topic);
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  target.classList.remove("flash");
+  void target.offsetWidth;
+  target.classList.add("flash");
+}
+
+function renderTopics() {
+  const o = engine.overview(now());
+  const all = cardList();
+  const byIdea = [...ideas().values()];
+  $("topics-list").replaceChildren(...topics().map((t) => {
+    const mine = all.filter((c) => c.topic === t.topic);
+    const read = o.read.includes(t.topic);
+    const card = el("details", "topic-card surface");
+    card.dataset.topic = t.topic;
+    card.open = openTopics.has(t.topic);
+    card.addEventListener("toggle", () => { if (card.open) openTopics.add(t.topic); else openTopics.delete(t.topic); });
+    const head = el("summary", "topic-head");
+    const known = mine.filter((c) => c.status === "later").length;
+    head.append(el("b", "", t.title), el("span", "", read ? `Read · ${known} of ${mine.length} known` : `Not read yet · ${mine.length} questions`));
+    const actions = el("div", "stack2 topic-actions");
+    const note = el("a", "btn quiet topic-note");
+    note.href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(t.note.replace(/\.md$/, ""))}`;
+    note.append(ic("book"), "Read the note in Obsidian");
+    actions.append(note);
+    if (!read) {
+      const mark = el("button", "btn primary", "I've read it · open its cards");
+      mark.type = "button";
+      mark.addEventListener("click", () => openTopic(t.topic));
+      actions.append(mark);
+    }
+    card.append(head, actions);
+    const units = byIdea.filter((i) => i.topic === t.topic).sort((a, b) => a.n - b.n);
+    for (const idea of units) {
+      const box = el("div", "idea");
+      box.dataset.unit = idea.unit;
+      const h = el("div", "idea-head");
+      h.append(el("span", "idea-n", String(idea.n)), el("b", "", idea.concepts.join(" · ")));
+      box.append(h, el("p", "idea-text", idea.idea));
+      if (idea.requires.length) {
+        const row = el("div", "chips-wrap");
+        row.append(el("span", "chip-label", "Builds on"), ...idea.requires.map((r) => ideaChip(r.unit, "idea-req", t.topic)));
+        box.append(row);
+      }
+      const users = byIdea.filter((x) => x.requires.some((r) => r.unit === idea.unit));
+      if (users.length) {
+        const row = el("div", "chips-wrap");
+        row.append(el("span", "chip-label", "Needed by"), ...users.map((x) => ideaChip(x.unit, "idea-for", t.topic)));
+        box.append(row);
+      }
+      const rows = el("div", "rows idea-cards");
+      rows.append(...mine.filter((c) => c.unit === idea.unit).map(cardRow));
+      box.append(rows);
+      card.append(box);
+    }
+    const across = mine.filter((c) => !ideas().has(c.unit));
+    if (across.length) {
+      const box = el("div", "across");
+      box.append(el("div", "idea-head", "Across the topic"));
+      const rows = el("div", "rows idea-cards");
+      rows.append(...across.map(cardRow));
+      box.append(rows);
+      card.append(box);
+    }
+    return card;
+  }));
 }
 
 function openFilters() {
@@ -705,9 +848,13 @@ $("filter-done").addEventListener("click", closeSheets);
 $("filter-clear").addEventListener("click", () => {
   cardsView.hiddenTopics.clear();
   cardsView.hiddenChannels.clear();
+  cardsView.onlyDiagrams = false;
+  $("filter-diagrams").checked = false;
   closeSheets();
   renderCards();
 });
+$("filter-diagrams").addEventListener("change", () => { cardsView.onlyDiagrams = $("filter-diagrams").checked; renderCards(); });
+$("update").addEventListener("click", () => location.reload());
 $("preview-reveal").addEventListener("click", () => { $("preview-back-box").hidden = false; $("preview-reveal").hidden = true; });
 $("preview-close").addEventListener("click", () => { $("preview").hidden = true; });
 document.querySelectorAll("[data-theme-choice]").forEach((b) => b.addEventListener("click", () => {
@@ -720,6 +867,7 @@ $("token-cancel").addEventListener("click", closeToken);
 $("sync").addEventListener("click", () => save());
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden" && applied.length) save();
+  if (document.visibilityState === "visible") checkVersion();
 });
 $("token-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -740,6 +888,8 @@ $("token-form").addEventListener("submit", async (ev) => {
 (async () => {
   applyTheme();
   renderToken();
+  renderSettings();
+  checkVersion();
   await keepStorage();
   await showPending();
   enginePromise = Engine.start();

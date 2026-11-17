@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css">
-<script src="theme.js"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-17.2">
+<script src="theme.js?v=2026-11-17.2"></script>
 </head>
 <body>
 <header class="topbar">
@@ -14,6 +14,7 @@
   <span id="pending" data-count="0"></span>
   <button id="sync" type="button" data-state="idle" title="Save now">Saved</button>
 </header>
+<button id="update" class="update" type="button" hidden>A new version of the page is ready · tap to reload</button>
 
 <form id="token-form" class="sheet" hidden>
   <div class="grab"></div>
@@ -133,12 +134,20 @@
   </div>
   <div id="cards-group" class="seg">
     <button type="button" data-group="topic" class="on">Topic</button>
+    <button type="button" data-group="idea">Idea</button>
     <button type="button" data-group="channel">Type</button>
     <button type="button" data-group="status">Status</button>
   </div>
   <div id="cards-filters" class="chips"></div>
   <div id="cards-list"></div>
   <p id="cards-empty" class="ask" hidden>No cards match.</p>
+</section>
+
+<!-- Topics -->
+<section id="view-topics" class="view" hidden>
+  <h1>Topics</h1>
+  <p class="muted intro">Each topic, its core ideas and the questions on each idea. "Builds on" links an idea to the ideas it needs.</p>
+  <div id="topics-list"></div>
 </section>
 
 <!-- Progress -->
@@ -172,11 +181,16 @@
   <div class="surface rows">
     <button id="change-token" class="rowi" type="button"><div class="ic" data-icon="key"></div><div class="tx"><b>GitHub token</b><span id="token-days">Enter a new one</span></div><span class="chev" data-icon="right"></span></button>
   </div>
+  <div class="label">About</div>
+  <div class="surface rows">
+    <div class="rowi"><div class="ic" data-icon="gear"></div><div class="tx"><b id="page-version"></b><span id="explain-count"></span></div></div>
+  </div>
 </section>
 </main>
 
 <nav id="tabs" class="tabs">
   <button type="button" data-tab="today" class="on"><span data-icon="home"></span>Today</button>
+  <button type="button" data-tab="topics"><span data-icon="book"></span>Topics</button>
   <button type="button" data-tab="cards"><span data-icon="cards"></span>Cards</button>
   <button type="button" data-tab="progress"><span data-icon="chart"></span>Progress</button>
   <button type="button" data-tab="settings"><span data-icon="gear"></span>Settings</button>
@@ -215,11 +229,13 @@
   <h2>Filter cards</h2>
   <div class="label">Topic</div><div id="filter-topics" class="checks"></div>
   <div class="label">Type</div><div id="filter-channels" class="checks"></div>
+  <div class="label">Explanation</div>
+  <div class="checks"><label><input id="filter-diagrams" type="checkbox">Only questions whose explanation has a diagram</label></div>
   <div class="stack2">
     <button id="filter-done" class="btn primary" type="button">Show cards</button>
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=2026-11-17.2"></script>
 </body>
 </html>

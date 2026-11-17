@@ -74,7 +74,7 @@ def card_list(now):
             s = "locked"
         card = it.get("card") or {}
         fronts = card.get("fronts") or ([card["front"]] if card.get("front") else [])
-        out.append({"id": iid, "topic": _mod._topic(it), "channel": it["channel"], "status": s,
+        out.append({"id": iid, "topic": _mod._topic(it), "unit": it["unit"], "channel": it["channel"], "status": s,
                     "text": fronts[0] if fronts else it.get("example_prompt", ""),
                     "due": c.due.isoformat() if c else None})
     return json.dumps(out)
