@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.1";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.1";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.1";
-import { inline, rich } from "./rich.js?v=2026-11-18.1";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.2";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.2";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.2";
+import { inline, rich } from "./rich.js?v=2026-11-18.2";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-18.1";
+const VERSION = "2026-11-18.2";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -89,8 +89,9 @@ let session = { done: 0 };
 let explaining = false;  // a No or With effort answer is recorded and its explanation is open
 let explainIndex = null; // {files, items: Map(item id -> {note, blocks, diagrams})}
 const diagramUrls = new Map();
-const cardsView = { query: "", filter: "all", group: "topic", hiddenTopics: new Set(), hiddenChannels: new Set(), onlyDiagrams: false };
-const openTopics = new Set();
+const cardsView = { query: "", filter: "all", group: "concern", hiddenTopics: new Set(), hiddenChannels: new Set(), onlyDiagrams: false };
+const openGroups = new Set();  // folded groups the learner opened
+let viewTurn = null;  // the turn shown in Cards and Topics: "all" or 1-3; starts on the learner's current turn
 
 const now = () => new Date().toISOString();
 const channelOf = (c) => (CHANNEL[c] ? c : "ai");
@@ -254,6 +255,7 @@ function show(name) {
 function render() {
   renderSettings();
   if (!engine || !base) return;
+  viewTurn ??= engine.overview(now()).turn || 1;
   if (tab === "today") renderToday();
   else if (tab === "topics") renderTopics();
   else if (tab === "cards") renderCards();
@@ -644,7 +646,7 @@ function cardRow(c) {
   const row = el("button", "rowi card-row");
   row.type = "button";
   Object.assign(row.dataset, { item: c.id, status: c.status, topic: c.topic, channel: channelOf(c.channel),
-    diagram: c.diagram ? "yes" : "no" });
+    diagram: c.diagram ? "yes" : "no", turn: String(c.turn) });
   const icon = el("div", "ic");
   icon.append(ic(CHANNEL[channelOf(c.channel)][0]));
   const tx = el("div", "tx");
@@ -674,35 +676,130 @@ function statusTag(status, due) {
   return sp;
 }
 
+// ---------- grouping shared by Cards and Topics ----------
+const turnOk = (c) => viewTurn === "all" || c.turn === viewTurn;
+const concernOf = (topic) => topics().find((t) => t.topic === topic)?.concern || "Other";
+const concernNames = () => [...new Set(topics().map((t) => t.concern || "Other"))];
+
+function pill(kind, n, label) {
+  const p = el("span", `pill ${kind}`);
+  p.dataset.count = kind;
+  p.append(el("b", "", String(n)), el("span", "", label));
+  return p;
+}
+
+function pills(...list) {
+  const box = el("span", "pills");
+  box.append(...list.filter(Boolean));
+  return box;
+}
+
+// A folded group with its counts at the right. Opening it by hand folds its open siblings; what is open survives a
+// re-render. `forced` opens it without folding the others (a search or a filter showing every match).
+function group(cls, key, title, counts, forced = false) {
+  const d = el("details", cls);
+  d.open = forced || openGroups.has(key);
+  const s = el("summary", "group-head");
+  const name = el("span", "group-title");
+  name.append(...title);
+  s.append(ic("right"), name, counts);
+  s.addEventListener("click", () => {
+    if (d.open) return;
+    for (const sib of d.parentElement?.children || []) {
+      if (sib !== d && sib.tagName === "DETAILS" && sib.open) sib.open = false;
+    }
+  });
+  d.addEventListener("toggle", () => {
+    if (forced) return;
+    if (d.open) openGroups.add(key);
+    else openGroups.delete(key);
+  });
+  d.append(s);
+  return d;
+}
+
+// Open a group and every group around it, folding their siblings, as if tapped from the outside in.
+function openPath(d) {
+  const chain = [];
+  for (let x = d; x; x = x.parentElement?.closest("details")) chain.unshift(x);
+  for (const x of chain) {
+    if (x.open) continue;
+    for (const sib of x.parentElement.children) if (sib !== x && sib.tagName === "DETAILS" && sib.open) sib.open = false;
+    x.open = true;
+  }
+}
+
+function renderTurns(host, all) {
+  const counts = { all: all.length };
+  for (const c of all) counts[c.turn] = (counts[c.turn] || 0) + 1;
+  host.replaceChildren(...["all", 1, 2, 3].map((n) => {
+    const b = el("button", n === viewTurn ? "on" : "");
+    b.type = "button";
+    b.dataset.turn = String(n);
+    b.append(el("span", "", n === "all" ? "All" : `Turn ${n}`), el("b", "", String(counts[n] || 0)));
+    b.disabled = n !== "all" && !counts[n];
+    b.addEventListener("click", () => { viewTurn = n; render(); });
+    return b;
+  }));
+}
+
+function statusPills(list) {
+  const n = (s) => list.filter((c) => c.status === s).length;
+  return pills(pill("questions", list.length, "questions"), n("due") && pill("due", n("due"), "due"),
+    n("new") && pill("new", n("new"), "new"), n("ai") && pill("ai", n("ai"), "AI"));
+}
+
+// ---------- Cards ----------
 function renderCards() {
   const all = cardList();
+  renderTurns($("cards-turns"), all);
   const order = topics().map((t) => t.topic);
-  const keyOf = (c) => (cardsView.group === "topic" ? topicTitle(c.topic)
-    : cardsView.group === "idea" ? ideaTitle(c.unit, c.topic)
-    : cardsView.group === "channel" ? CHANNEL[channelOf(c.channel)][1] : STATUS[c.status]);
-  const rank = (c) => (cardsView.group === "topic" ? order.indexOf(c.topic)
-    : cardsView.group === "idea" ? order.indexOf(c.topic) * 100 + (ideas().get(c.unit)?.n ?? 99)
-    : cardsView.group === "channel" ? Object.keys(CHANNEL).indexOf(channelOf(c.channel)) : Object.keys(STATUS).indexOf(c.status));
-  const groups = new Map();
-  for (const c of [...all].sort((a, b) => rank(a) - rank(b))) {
-    if (!groups.has(keyOf(c))) groups.set(keyOf(c), []);
-    groups.get(keyOf(c)).push(c);
-  }
+  const filtering = Boolean(cardsView.query) || cardsView.filter !== "all" || cardsView.hiddenTopics.size > 0
+    || cardsView.hiddenChannels.size > 0 || cardsView.onlyDiagrams;
+  const shownOf = (c) => turnOk(c) && rowMatches(c);
   let shown = 0;
-  $("cards-list").replaceChildren(...[...groups].flatMap(([name, list]) => {
-    const sec = el("div", "surface rows");
-    for (const c of list) {
-      const row = cardRow(c);
-      row.hidden = !rowMatches(c);
-      if (!row.hidden) shown += 1;
-      sec.append(row);
+  const rowsOf = (list) => list.map((c) => {
+    const r = cardRow(c);
+    r.hidden = !shownOf(c);
+    if (!r.hidden) shown += 1;
+    return r;
+  });
+  const makeGroup = (level, key, title, list, children) => {
+    const visible = list.filter(shownOf);
+    const g = group("card-group", `cards:${level}:${key}`, [title], statusPills(visible), filtering && visible.length > 0);
+    g.dataset.level = level;
+    g.hidden = visible.length === 0;
+    const body = el("div", level === "concern" ? "group-body" : "group-body rows");
+    body.append(...children);
+    g.append(body);
+    return g;
+  };
+  let tree;
+  if (cardsView.group === "concern") {
+    tree = concernNames().map((cn) => {
+      const ts = order.filter((t) => concernOf(t) === cn);
+      return makeGroup("concern", cn, cn, all.filter((c) => ts.includes(c.topic)), ts.map((t) => {
+        const list = all.filter((c) => c.topic === t);
+        return makeGroup("topic", t, topicTitle(t), list, rowsOf(list));
+      }));
+    });
+  } else {
+    const keyOf = (c) => (cardsView.group === "topic" ? topicTitle(c.topic)
+      : cardsView.group === "idea" ? ideaTitle(c.unit, c.topic)
+      : cardsView.group === "channel" ? CHANNEL[channelOf(c.channel)][1] : STATUS[c.status]);
+    const rank = (c) => (cardsView.group === "topic" ? order.indexOf(c.topic)
+      : cardsView.group === "idea" ? order.indexOf(c.topic) * 100 + (ideas().get(c.unit)?.n ?? 99)
+      : cardsView.group === "channel" ? Object.keys(CHANNEL).indexOf(channelOf(c.channel)) : Object.keys(STATUS).indexOf(c.status));
+    const groups = new Map();
+    for (const c of [...all].sort((a, b) => rank(a) - rank(b))) {
+      if (!groups.has(keyOf(c))) groups.set(keyOf(c), []);
+      groups.get(keyOf(c)).push(c);
     }
-    const label = el("div", "label", name);
-    sec.hidden = label.hidden = list.every((c) => !rowMatches(c));
-    return [label, sec];
-  }));
-  $("cards-empty").hidden = shown > 0;
-  const pool = all.filter((c) => rowMatches(c, true));
+    tree = [...groups].map(([name, list]) => makeGroup(cardsView.group, name, name, list, rowsOf(list)));
+  }
+  $("cards-list").replaceChildren(...tree);
+  $("cards-empty").hidden = shown > 0 || !filtering;
+  const pool = all.filter((c) => turnOk(c) && rowMatches(c, true));
   $("cards-filters").replaceChildren(...FILTERS.map((f) => {
     const b = el("button", f === cardsView.filter ? "on" : "");
     b.type = "button";
@@ -718,7 +815,7 @@ function renderCards() {
   $("filter-count").textContent = String(n);
 }
 
-// ---------- Topics: topic -> core ideas -> questions; "Builds on" / "Needed by" follow the idea links ----------
+// ---------- Topics: concern -> topic -> core idea -> questions; "Builds on" / "Needed by" follow the idea links ----------
 function ideaChip(unit, cls, from) {
   const idea = ideas().get(unit);
   const b = el("button", `chip ${cls}`);
@@ -733,75 +830,117 @@ function ideaChip(unit, cls, from) {
 function goToIdea(unit) {
   const target = document.querySelector(`.idea[data-unit="${CSS.escape(unit)}"]`);
   if (!target) return;
-  const card = target.closest(".topic-card");
-  card.open = true;
-  openTopics.add(card.dataset.topic);
+  openPath(target);
   target.scrollIntoView({ behavior: "smooth", block: "start" });
   target.classList.remove("flash");
   void target.offsetWidth;
   target.classList.add("flash");
 }
 
+function progressLine(list, read, total) {
+  const known = list.filter((c) => c.status === "later").length;
+  const learning = list.filter((c) => c.status === "learn" || c.status === "due").length;
+  const box = el("div", "progress-line");
+  const split = el("div", "split");
+  for (const [cls, n] of [["k", known], ["l", learning], ["n", list.length - known - learning]]) {
+    const i = el("i", cls);
+    i.style.flex = String(n || 0.0001);
+    split.append(i);
+  }
+  box.append(split, pills(pill("read", `${read}/${total}`, "read"), pill("known", known, "known"),
+    pill("learning", learning, "learning")));
+  return box;
+}
+
 function renderTopics() {
   const o = engine.overview(now());
   const all = cardList();
+  renderTurns($("topics-turns"), all);
+  const inTurn = all.filter(turnOk);
   const byIdea = [...ideas().values()];
-  $("topics-list").replaceChildren(...topics().map((t) => {
-    const mine = all.filter((c) => c.topic === t.topic);
-    const read = o.read.includes(t.topic);
-    const card = el("details", "topic-card surface");
-    card.dataset.topic = t.topic;
-    card.open = openTopics.has(t.topic);
-    card.addEventListener("toggle", () => { if (card.open) openTopics.add(t.topic); else openTopics.delete(t.topic); });
-    const head = el("summary", "topic-head");
-    const known = mine.filter((c) => c.status === "later").length;
-    head.append(el("b", "", t.title), el("span", "", read ? `Read · ${known} of ${mine.length} known` : `Not read yet · ${mine.length} questions`));
-    const actions = el("div", "stack2 topic-actions");
-    const note = el("a", "btn quiet topic-note");
-    note.href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(t.note.replace(/\.md$/, ""))}`;
-    note.append(ic("book"), "Read the note in Obsidian");
-    actions.append(note);
-    if (!read) {
-      const mark = el("button", "btn primary", "I've read it · open its cards");
-      mark.type = "button";
-      mark.addEventListener("click", () => openTopic(t.topic));
-      actions.append(mark);
-    }
-    card.append(head, actions);
-    const units = byIdea.filter((i) => i.topic === t.topic).sort((a, b) => a.n - b.n);
-    for (const idea of units) {
-      const box = el("div", "idea");
-      box.dataset.unit = idea.unit;
-      const h = el("div", "idea-head");
-      h.append(el("span", "idea-n", String(idea.n)), el("b", "", idea.concepts.join(" · ")));
-      box.append(h, el("p", "idea-text", idea.idea));
-      if (idea.requires.length) {
-        const row = el("div", "chips-wrap");
-        row.append(el("span", "chip-label", "Builds on"), ...idea.requires.map((r) => ideaChip(r.unit, "idea-req", t.topic)));
-        box.append(row);
-      }
-      const users = byIdea.filter((x) => x.requires.some((r) => r.unit === idea.unit));
-      if (users.length) {
-        const row = el("div", "chips-wrap");
-        row.append(el("span", "chip-label", "Needed by"), ...users.map((x) => ideaChip(x.unit, "idea-for", t.topic)));
-        box.append(row);
-      }
-      const rows = el("div", "rows idea-cards");
-      rows.append(...mine.filter((c) => c.unit === idea.unit).map(cardRow));
-      box.append(rows);
-      card.append(box);
-    }
-    const across = mine.filter((c) => !ideas().has(c.unit));
-    if (across.length) {
-      const box = el("div", "across");
-      box.append(el("div", "idea-head", "Across the topic"));
-      const rows = el("div", "rows idea-cards");
-      rows.append(...across.map(cardRow));
-      box.append(rows);
-      card.append(box);
-    }
-    return card;
+  $("topics-list").replaceChildren(...concernNames().map((cn) => {
+    const ts = topics().filter((t) => (t.concern || "Other") === cn);
+    const mine = inTurn.filter((c) => ts.some((t) => t.topic === c.topic));
+    const g = group("concern surface", `topics:c:${cn}`, [cn],
+      pills(pill("topics", ts.length, "topics"), pill("questions", mine.length, "questions")));
+    g.dataset.concern = cn;
+    const body = el("div", "group-body");
+    body.append(progressLine(mine, ts.filter((t) => o.read.includes(t.topic)).length, ts.length));
+    body.append(...ts.map((t) => topicCard(t, all, o, byIdea)));
+    g.append(body);
+    return g;
   }));
+}
+
+function topicCard(t, all, o, byIdea) {
+  const every = all.filter((c) => c.topic === t.topic);
+  const mine = every.filter(turnOk);
+  const read = o.read.includes(t.topic);
+  const units = byIdea.filter((i) => i.topic === t.topic).sort((a, b) => a.n - b.n);
+  const known = mine.filter((c) => c.status === "later").length;
+  const card = group("topic-card", `topics:t:${t.topic}`,
+    [el("b", "", t.title), el("span", "topic-state", read ? "Read" : "Not read yet")],
+    pills(pill("ideas", units.length, "ideas"), read ? pill("known", `${known}/${mine.length}`, "known")
+      : pill("questions", mine.length, "questions")));
+  card.dataset.topic = t.topic;
+  card.querySelector("summary").classList.add("topic-head");
+  const body = el("div", "group-body");
+  const actions = el("div", "stack2 topic-actions");
+  const note = el("a", "btn quiet topic-note");
+  note.href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(t.note.replace(/\.md$/, ""))}`;
+  note.append(ic("book"), "Read the note in Obsidian");
+  actions.append(note);
+  if (!read) {
+    const mark = el("button", "btn primary", "I've read it · open its cards");
+    mark.type = "button";
+    mark.addEventListener("click", () => openTopic(t.topic));
+    actions.append(mark);
+  }
+  body.append(actions);
+  const rowsOf = (list) => {
+    const rows = el("div", "rows idea-cards");
+    rows.append(...list.map((c) => {
+      const r = cardRow(c);
+      r.hidden = !turnOk(c);
+      return r;
+    }));
+    return rows;
+  };
+  for (const idea of units) {
+    const qs = every.filter((c) => c.unit === idea.unit);
+    const inTurn = qs.filter(turnOk);
+    const box = group("idea", `topics:i:${idea.unit}`,
+      [el("span", "idea-n", String(idea.n)), el("b", "", idea.label)],
+      pills(pill("known", `${inTurn.filter((c) => c.status === "later").length}/${inTurn.length}`, "known")));
+    box.dataset.unit = idea.unit;
+    const ib = el("div", "group-body");
+    ib.append(el("p", "idea-text", idea.idea));
+    if (idea.requires.length) {
+      const row = el("div", "chips-wrap");
+      row.append(el("span", "chip-label", "Builds on"), ...idea.requires.map((r) => ideaChip(r.unit, "idea-req", t.topic)));
+      ib.append(row);
+    }
+    const users = byIdea.filter((x) => x.requires.some((r) => r.unit === idea.unit));
+    if (users.length) {
+      const row = el("div", "chips-wrap");
+      row.append(el("span", "chip-label", "Needed by"), ...users.map((x) => ideaChip(x.unit, "idea-for", t.topic)));
+      ib.append(row);
+    }
+    ib.append(rowsOf(qs));
+    box.append(ib);
+    body.append(box);
+  }
+  const across = every.filter((c) => !ideas().has(c.unit));
+  if (across.length) {
+    const box = group("across", `topics:a:${t.topic}`, [el("b", "", "Across the topic")],
+      pills(pill("questions", across.filter(turnOk).length, "questions")));
+    const ab = el("div", "group-body");
+    ab.append(rowsOf(across));
+    box.append(ab);
+    body.append(box);
+  }
+  card.append(body);
+  return card;
 }
 
 function openFilters() {

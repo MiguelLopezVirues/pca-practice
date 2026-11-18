@@ -21,7 +21,8 @@ from __future__ import annotations
 import json
 from urllib.parse import quote
 
-from conftest import FIRST_TOPIC, STATE, T0, desktop_apply, desktop_queue, items_by_id, open_page, plain, rate, save_now
+from conftest import (FIRST_TOPIC, STATE, T0, click_row, desktop_apply, desktop_queue, items_by_id, open_page, plain,
+                      rate, save_now)
 from test_page import answers, front_of, same_state
 
 
@@ -148,7 +149,7 @@ def test_preview_shows_the_card_as_in_review_and_records_nothing(context, page_o
     page = today(context, page_origin, repo)
     n = len(repo.commits())
     page.click("#tabs [data-tab='cards']")
-    page.click(f".card-row[data-item='{flash}']")
+    click_row(page, flash)
     assert page.locator("#preview").is_visible()
     assert plain(page.locator("#preview-front").inner_text()) == plain(front_of(seed, flash))
     assert not page.locator("#preview-back").is_visible()

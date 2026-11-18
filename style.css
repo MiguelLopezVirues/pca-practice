@@ -228,19 +228,45 @@ img.diagram { display:block; width:100%; height:auto; max-height:20rem; object-f
 
 /* topics */
 .intro { font-size:.88rem; margin:-.4rem 0 1rem; }
-.topic-card { margin-bottom:.8rem; overflow:hidden; }
-.topic-head { list-style:none; cursor:pointer; padding:1rem 1.1rem; display:grid; gap:.15rem; }
-.topic-head::-webkit-details-marker { display:none; }
-.topic-head b { font-size:1rem; } .topic-head span { color:var(--muted); font-size:.82rem; }
-.topic-card[open] .topic-head { border-bottom:1px solid var(--line); }
-.topic-actions { padding:0 1.1rem 1rem; }
-.idea, .across { padding:.9rem 1.1rem; border-top:1px solid var(--line); scroll-margin-top:1rem; transition:background .6s; }
+
+/* turn switch */
+.turns { margin-bottom:.8rem; }
+.turns button { display:flex; align-items:center; justify-content:center; gap:.35rem; }
+.turns button b { font-size:.72rem; font-weight:600; min-width:1.4rem; padding:.05rem .35rem; border-radius:999px; background:var(--surface); color:var(--muted); font-variant-numeric:tabular-nums; }
+.turns button.on b { background:var(--accent-soft); color:var(--accent); }
+.turns button:disabled { opacity:.45; }
+
+/* folded groups: name on the left, counts in fields on the right */
+details > summary.group-head { list-style:none; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.6rem; cursor:pointer; padding:.85rem 1rem; }
+summary.group-head::-webkit-details-marker { display:none; }
+summary.group-head > svg { width:1rem; height:1rem; color:var(--faint); transition:transform .2s; }
+details[open] > summary.group-head > svg { transform:rotate(90deg); }
+.group-title { min-width:0; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; font-weight:600; }
+.idea > summary .group-title { flex-wrap:nowrap; }
+.pills { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.3rem; max-width:9rem; }
+.pill { display:inline-flex; align-items:baseline; gap:.25rem; padding:.12rem .5rem; border-radius:8px; border:1px solid var(--line); background:var(--soft); font-size:.68rem; color:var(--muted); white-space:nowrap; }
+.pill b { font-size:.8rem; font-weight:650; color:var(--text); font-variant-numeric:tabular-nums; }
+.pill.due b { color:color-mix(in srgb, var(--orange) 60%, var(--text)); }
+.pill.new b { color:color-mix(in srgb, var(--sky) 55%, var(--text)); }
+.pill.ai b, .pill.known b { color:var(--accent); }
+.group-body { padding:0 .6rem .7rem; }
+.group-body details > summary.group-head { padding:.7rem .4rem; gap:.45rem; }
+.concern { margin-bottom:.8rem; }
+.concern > summary .group-title { font-size:1.02rem; }
+.progress-line { display:grid; gap:.45rem; padding:0 .4rem .7rem; }
+.progress-line .pills { justify-content:flex-start; max-width:none; }
+.topic-card, .idea, .across, .card-group[data-level='topic'] { border-top:1px solid var(--line); }
+.topic-card > summary .group-title b { font-weight:600; }
+.topic-state { font-size:.75rem; font-weight:500; color:var(--muted); }
+.card-group[data-level='concern'], .card-group:not([data-level='topic']) { background:var(--surface); border-radius:var(--r); box-shadow:var(--shadow); margin-bottom:.7rem; overflow:hidden; }
+.card-group .rows .rowi { padding:.7rem .6rem; }
+.topic-actions { padding:.2rem .4rem .8rem; }
+.idea, .across { padding:0; scroll-margin-top:1rem; transition:background .6s; }
 .idea.flash { background:var(--accent-soft); }
-.idea-head { display:flex; align-items:center; gap:.55rem; font-weight:600; }
-.idea-head b { color:var(--accent); font-size:.95rem; }
 .idea-n { width:1.6rem; height:1.6rem; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:.78rem; flex:none; }
-.idea-text { margin:.4rem 0 .5rem; font-size:.9rem; color:var(--text); }
-.chips-wrap { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin:.35rem 0; }
+.idea-text { margin:0 .4rem .5rem; font-size:.9rem; color:var(--text); }
+.idea > summary .group-title b { color:var(--accent); font-size:.95rem; }
+.chips-wrap { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin:.35rem .4rem; }
 .chip-label { font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); margin-right:.2rem; }
 .chip { border:1px solid var(--line); background:var(--surface); color:var(--accent); border-radius:999px; padding:.25rem .65rem; font-size:.78rem; }
 .idea-for { color:var(--muted); border-style:dashed; }

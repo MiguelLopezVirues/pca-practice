@@ -57,7 +57,7 @@ def overview(now):
         if d in per_day:
             per_day[d] += 1
     return json.dumps({"due": sum(1 for i in fc if i in _eng.cards), "new": sum(1 for i in fc if i not in _eng.cards),
-                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day})
+                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day, "turn": _eng.cfg.turn})
 
 # Every question with its status: due | new | learn | later | ai | locked.
 def card_list(now):
@@ -81,7 +81,7 @@ def card_list(now):
         versions = (it.get("choice") or {}).get("versions") or []
         text = fronts[0] if fronts else versions[0]["stem"] if versions else it.get("example_prompt", "")
         out.append({"id": iid, "topic": _mod._topic(it), "unit": it["unit"], "channel": it["channel"], "status": s,
-                    "text": text,
+                    "text": text, "turn": it.get("turn") or (2 if it["depth"] >= 2 else 1),
                     "due": c.due.isoformat() if c else None})
     return json.dumps(out)
 `;

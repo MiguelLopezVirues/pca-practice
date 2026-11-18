@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from urllib.parse import unquote
 
-from conftest import T0, desktop_queue, items_by_id, open_page, plain, settle
+from conftest import T0, click_row, desktop_queue, items_by_id, open_page, plain, settle
 from test_page import fronts_of
 
 
@@ -51,7 +51,7 @@ def test_bold_and_tables_are_drawn(context, page_origin, repo, tmp_path):
                  and i.startswith("NF-stack-at-a-glance."))
     page.click("#practice-close")
     page.click("#tabs [data-tab='cards']")
-    page.click(f".card-row[data-item='{table}']")
+    click_row(page, table)
     page.click("#preview-reveal")
     assert page.locator("#preview-back table tr").count() == len([ln for ln in items[table]["card"]["back"].splitlines()
                                                                    if ln.startswith("|") and "---" not in ln])
@@ -114,7 +114,7 @@ def test_preview_shows_the_answer_of_an_open_question_with_its_diagrams(context,
     _, blocks = explain(seed, item)
     page = open_page(context, page_origin, repo, practice=False)
     page.click("#tabs [data-tab='cards']")
-    page.click(f".card-row[data-item='{item}']")
+    click_row(page, item)
     assert plain(page.locator("#preview-front").inner_text()) == plain(items[item]["example_prompt"])
     page.click("#preview-reveal")
     assert plain(page.locator("#preview-back").inner_text()) == plain(items[item]["model_answer"])

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-18.1">
-<script src="theme.js?v=2026-11-18.1"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-18.2">
+<script src="theme.js?v=2026-11-18.2"></script>
 </head>
 <body>
 <header class="topbar">
@@ -131,8 +131,10 @@
     <label class="search"><span data-icon="search"></span><input id="cards-search" placeholder="Search questions" autocomplete="off"></label>
     <button id="open-filters" class="fbtn" type="button" aria-label="Filters"><span data-icon="filter"></span><b id="filter-count" hidden></b></button>
   </div>
+  <div id="cards-turns" class="seg turns"></div>
   <div id="cards-group" class="seg">
-    <button type="button" data-group="topic" class="on">Topic</button>
+    <button type="button" data-group="concern" class="on">Concern</button>
+    <button type="button" data-group="topic">Topic</button>
     <button type="button" data-group="idea">Idea</button>
     <button type="button" data-group="channel">Type</button>
     <button type="button" data-group="status">Status</button>
@@ -145,6 +147,7 @@
 <!-- Topics -->
 <section id="view-topics" class="view" hidden>
   <h1>Topics</h1>
+  <div id="topics-turns" class="seg turns"></div>
   <p class="muted intro">Each topic, its core ideas and the questions on each idea. "Builds on" links an idea to the ideas it needs.</p>
   <div id="topics-list"></div>
 </section>
@@ -256,6 +259,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-18.1"></script>
+<script type="module" src="app.js?v=2026-11-18.2"></script>
 </body>
 </html>

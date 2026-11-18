@@ -206,6 +206,26 @@ def save_now(page, timeout=120_000):
     return page.locator("#sync").get_attribute("data-state")
 
 
+def open_groups(page, inner):
+    """Unfold the folded groups around the first element matching `inner`, outermost first, as a learner would."""
+    n = page.locator(inner).first.evaluate("""el => {
+        const path = [];
+        for (let d = el.closest('details'); d; d = d.parentElement.closest('details')) path.unshift(d);
+        path.forEach((d, i) => d.setAttribute('data-path', i));
+        return path.length; }""")
+    for i in range(n):
+        d = page.locator(f"details[data-path='{i}']")
+        if not d.evaluate("d => d.open"):
+            d.locator(":scope > summary").click()
+    page.evaluate("() => document.querySelectorAll('[data-path]').forEach(d => d.removeAttribute('data-path'))")
+
+
+def click_row(page, item_id):
+    row = f".card-row[data-item='{item_id}']"
+    open_groups(page, row)
+    page.click(row)
+
+
 # the two-step self-grading: rating -> buttons clicked after revealing
 STEPS = {1: ["#know-no"], 2: ["#know-yes", "#came-effort"], 3: ["#know-yes", "#came-moment"],
          4: ["#know-yes", "#came-instantly"]}

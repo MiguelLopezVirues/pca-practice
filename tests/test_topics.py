@@ -17,7 +17,7 @@ import json
 import re
 from pathlib import Path
 
-from conftest import PAGE_DIR, items_by_id, open_page
+from conftest import PAGE_DIR, items_by_id, open_groups, open_page
 
 VERSION_RE = re.compile(r'const VERSION = "([^"]+)"')
 
@@ -72,8 +72,9 @@ def test_topics_show_ideas_with_their_questions_and_links(context, page_origin, 
     assert sorted(r.get_attribute("data-unit") for r in idea.locator(".idea-req").all()) == \
         ["NF-osi-tcpip-layers.1", "NF-osi-tcpip-layers.2", "NF-stack-at-a-glance.4"]
     target = page.locator(".idea[data-unit='NF-stack-at-a-glance.4']")
-    card.locator(".topic-head").click()
-    idea.locator(".idea-req[data-unit='NF-stack-at-a-glance.4']").click()
+    req = ".idea[data-unit='NF-devices-by-layer.1'] .idea-req[data-unit='NF-stack-at-a-glance.4']"
+    open_groups(page, req)
+    page.click(req)
     assert target.is_visible()
     assert page.locator(".idea[data-unit='NF-stack-at-a-glance.4'] .idea-for").count() >= 1
 
@@ -86,7 +87,7 @@ def test_cards_group_by_idea_and_mark_diagrams(context, page_origin, repo):
     assert page.locator(".card-row[data-diagram='yes']").count() == len(diagrams)
     page.click("#cards-group [data-group='idea']")
     assert page.locator("#cards-list .card-row").count() == len(items_by_id(seed))
-    assert page.locator("#cards-list .label", has_text="Packet").count() >= 1
+    assert page.locator("#cards-list .group-title", has_text="Packet").count() >= 1
     page.click("#open-filters")
     page.check("#filter-diagrams")
     page.click("#filter-done")
