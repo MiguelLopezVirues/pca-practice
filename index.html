@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-18.2">
-<script src="theme.js?v=2026-11-18.2"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-18.3">
+<script src="theme.js?v=2026-11-18.3"></script>
 </head>
 <body>
 <header class="topbar">
@@ -160,7 +160,8 @@
     <div><b id="known-total">0</b><span>cards known</span></div>
   </div>
   <div class="label">Topics</div>
-  <div id="topics" class="surface"></div>
+  <div id="progress-turns" class="seg turns"></div>
+  <div id="topics"></div>
   <div class="legend"><span><i class="k"></i>Known</span><span><i class="l"></i>Learning</span><span><i class="n"></i>Not started</span></div>
   <div class="label">Answers per day</div>
   <div id="per-day" class="surface cols"></div>
@@ -259,6 +260,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-18.2"></script>
+<script type="module" src="app.js?v=2026-11-18.3"></script>
 </body>
 </html>

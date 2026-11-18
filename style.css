@@ -231,7 +231,7 @@ img.diagram { display:block; width:100%; height:auto; max-height:20rem; object-f
 
 /* turn switch */
 .turns { margin-bottom:.8rem; }
-.turns button { display:flex; align-items:center; justify-content:center; gap:.35rem; }
+.turns button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.15rem; line-height:1.2; }
 .turns button b { font-size:.72rem; font-weight:600; min-width:1.4rem; padding:.05rem .35rem; border-radius:999px; background:var(--surface); color:var(--muted); font-variant-numeric:tabular-nums; }
 .turns button.on b { background:var(--accent-soft); color:var(--accent); }
 .turns button:disabled { opacity:.45; }
@@ -252,6 +252,8 @@ details[open] > summary.group-head > svg { transform:rotate(90deg); }
 .group-body { padding:0 .6rem .7rem; }
 .group-body details > summary.group-head { padding:.7rem .4rem; gap:.45rem; }
 .concern { margin-bottom:.8rem; }
+.progress-concern { margin-bottom:.7rem; overflow:hidden; }
+.progress-concern .split { margin:0 .4rem .4rem; }
 .concern > summary .group-title { font-size:1.02rem; }
 .progress-line { display:grid; gap:.45rem; padding:0 .4rem .7rem; }
 .progress-line .pills { justify-content:flex-start; max-width:none; }

@@ -173,9 +173,32 @@ def test_progress_shows_each_topic_in_reading_order(context, page_origin, repo):
     first = bars.nth(0)
     def topic_of(it):  # the engine's rule
         return it["unit"] if it.get("facet") == "T" else it["unit"].rsplit(".", 1)[0]
+    def turn_of(it):  # the page's rule: lean turn, or networking depth 2 = turn 2
+        return it.get("turn") or (2 if it.get("depth", 1) >= 2 else 1)
     assert int(first.get_attribute("data-total")) == sum(1 for it in items.values()
-                                                         if topic_of(it) == topics(seed)[0]["topic"])
+                                                         if topic_of(it) == topics(seed)[0]["topic"] and turn_of(it) == 1)
     assert first.get_attribute("data-known") == "0"
+
+
+def test_progress_is_grouped_by_concern_with_counts(context, page_origin, repo):
+    seed = repo.files()
+    order = list(dict.fromkeys(t["concern"] for t in topics(seed)))
+    page = today(context, page_origin, repo)
+    page.click("#tabs [data-tab='progress']")
+    groups = page.locator("#topics .progress-concern")
+    assert [g.get_attribute("data-concern") for g in groups.all()] == order
+    first = groups.first
+    total = sum(int(b.get_attribute("data-total")) for b in first.locator(".topic-progress").all())
+    assert first.locator(":scope > summary .pill[data-count='known'] b").inner_text().strip() == f"0/{total}"
+    assert page.locator("#progress-turns button.on").get_attribute("data-turn") == "1"
+
+
+def test_turn_buttons_put_the_count_under_the_label(context, page_origin, repo):
+    page = today(context, page_origin, repo)
+    page.click("#tabs [data-tab='cards']")
+    button = page.locator("#cards-turns button[data-turn='all']")
+    label, count = button.locator("span").bounding_box(), button.locator("b").bounding_box()
+    assert count["y"] >= label["y"] + label["height"] - 1
 
 
 # ---------- Settings ----------

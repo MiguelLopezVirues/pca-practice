@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.2";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.2";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.2";
-import { inline, rich } from "./rich.js?v=2026-11-18.2";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.3";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.3";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.3";
+import { inline, rich } from "./rich.js?v=2026-11-18.3";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-18.2";
+const VERSION = "2026-11-18.3";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -985,27 +985,47 @@ function preview(id) {
 // ---------- Progress ----------
 function renderProgress() {
   const o = engine.overview(now());
-  const all = engine.cardList(now());
+  const every = cardList();
+  renderTurns($("progress-turns"), every);
+  const all = every.filter(turnOk);
   const week = Object.values(o.per_day).reduce((a, b) => a + b, 0);
   $("week-answers").textContent = String(week);
   $("known-total").textContent = String(all.filter((c) => c.status === "later").length);
-  $("topics").replaceChildren(...topics().map((t) => {
-    const mine = all.filter((c) => c.topic === t.topic);
-    const known = mine.filter((c) => c.status === "later").length;
-    const learning = mine.filter((c) => c.status === "learn" || (c.status === "due")).length;
-    const rest = mine.length - known - learning;
-    const div = el("div", "topic topic-progress");
-    Object.assign(div.dataset, { topic: t.topic, total: mine.length, known, learning });
-    const h = el("h3", "", t.title);
-    h.append(el("span", "", o.read.includes(t.topic) ? `${known} of ${mine.length} known` : "not read yet"));
-    const split = el("div", "split");
+  const split = (known, learning, rest) => {
+    const s = el("div", "split");
     for (const [cls, n] of [["k", known], ["l", learning], ["n", rest]]) {
       const i = el("i", cls);
       i.style.flex = String(n || 0.0001);
-      split.append(i);
+      s.append(i);
     }
-    div.append(h, split);
-    return div;
+    return s;
+  };
+  const counts = (list) => {
+    const known = list.filter((c) => c.status === "later").length;
+    const learning = list.filter((c) => c.status === "learn" || c.status === "due").length;
+    return [known, learning, list.length - known - learning];
+  };
+  $("topics").replaceChildren(...concernNames().map((cn) => {
+    const ts = topics().filter((t) => (t.concern || "Other") === cn);
+    const mine = all.filter((c) => ts.some((t) => t.topic === c.topic));
+    const [known, learning, rest] = counts(mine);
+    const g = group("progress-concern surface", `progress:c:${cn}`, [cn],
+      pills(pill("known", `${known}/${mine.length}`, "known"), learning > 0 && pill("learning", learning, "learning")));
+    g.dataset.concern = cn;
+    const body = el("div", "group-body");
+    body.append(split(known, learning, rest), ...ts.map((t) => {
+      const list = all.filter((c) => c.topic === t.topic);
+      const [k, l, r] = counts(list);
+      const div = el("div", "topic topic-progress");
+      Object.assign(div.dataset, { topic: t.topic, total: list.length, known: k, learning: l });
+      const h = el("h3", "", t.title);
+      h.append(o.read.includes(t.topic) ? pills(pill("known", `${k}/${list.length}`, "known"))
+        : el("span", "", "not read yet"));
+      div.append(h, split(k, l, r));
+      return div;
+    }));
+    g.append(body);
+    return g;
   }));
   const max = Math.max(1, ...Object.values(o.per_day));
   $("per-day").replaceChildren(...Object.entries(o.per_day).map(([d, n]) => {
