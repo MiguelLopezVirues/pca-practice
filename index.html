@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-22.1">
-<script src="theme.js?v=2026-11-22.1"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-22.2">
+<script src="theme.js?v=2026-11-22.2"></script>
 </head>
 <body>
 <header class="topbar">
@@ -84,6 +84,11 @@
     <div class="actions">
       <button id="reveal" class="btn primary" type="button">Show answer</button>
       <button id="choice-continue" class="btn primary" type="button" hidden>Continue</button>
+      <div id="choice-reason" class="stack2" hidden>
+        <label for="reason-text" class="ask">Why is it right? One line, graded at your next Claude session</label>
+        <textarea id="reason-text" rows="2"></textarea>
+        <button id="reason-save" class="btn primary" type="button">Save</button>
+      </div>
       <div id="ratings" hidden>
         <div id="know">
           <p class="ask">Did you know it?</p>
@@ -271,6 +276,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-22.1"></script>
+<script type="module" src="app.js?v=2026-11-22.2"></script>
 </body>
 </html>

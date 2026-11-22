@@ -101,3 +101,32 @@ def test_multiple_choice_wrong_answer_shows_the_trap_then_explains(context, page
         assert (last["item"], last["rating"]) == (item, 1)
     finally:
         server.shutdown()
+
+
+def test_turn_2_multiple_choice_asks_for_the_reason_and_saves_it(context, page_origin, tmp_path):
+    files = seed_files(tmp_path)
+    path = f"pilot/practice/items_lean/{LEAN_TOPIC}.json"
+    questions = json.loads(files[path])
+    choice = next(q for q in questions if q["channel"] == "choice")
+    choice["turn"] = 2
+    choice["id"] = choice["id"].replace("/t1", "/t2")
+    files[path] = json.dumps(questions).encode()
+    files.update(desktop_apply(files, [("read", LEAN_TOPIC, T0), ("turn", 2, T0)], tmp_path))
+    items = items_by_id(files)
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r)
+        item = to_lean_card(page, items, "choice")
+        assert item == choice["id"]
+        page.click(".opt[data-right='true']")
+        assert page.locator("#reason-text").is_visible()
+        assert not page.locator("#came").is_visible()
+        page.fill("#reason-text", "Only the VM carries its own OS")
+        page.click("#reason-save")
+        settle(page)
+        save_now(page)
+        last = answers(r)[-1]
+        assert (last["item"], last["rating"], last["reason"]) == (item, 3, "Only the VM carries its own OS")
+        assert last["chosen"]
+    finally:
+        server.shutdown()

@@ -22,9 +22,9 @@ def load():
     _mod = mod
     _eng = mod.Engine.load("${PRACTICE}")
 
-# Questions practised on the phone: flashcards, and multiple choice that asks no reason (turn 1).
+# Questions practised on the phone: flashcards and multiple choice (from turn 2 with a reason graded later).
 def _phone(it):
-    return it["channel"] == "flashcard" or (it["channel"] == "choice" and it.get("turn", 1) == 1)
+    return it["channel"] in ("flashcard", "choice")
 
 def flashcards(now):
     t = datetime.fromisoformat(now)

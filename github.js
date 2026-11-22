@@ -1,5 +1,5 @@
 // GitHub Git Data API: read the needed files (cached by object id) and save files in one commit.
-import { cacheGet, cachePut } from "./store.js?v=2026-11-22.1";
+import { cacheGet, cachePut } from "./store.js?v=2026-11-22.2";
 
 export class Offline extends Error {}
 export class BadToken extends Error {}

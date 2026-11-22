@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.1";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.1";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.1";
-import { inline, rich } from "./rich.js?v=2026-11-22.1";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.2";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.2";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.2";
+import { inline, rich } from "./rich.js?v=2026-11-22.2";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-22.1";
+const VERSION = "2026-11-22.2";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -129,7 +129,8 @@ function logLine(a) {
   if (a.type === "read") return JSON.stringify({ id: a.id, type: "read", topic: a.topic, time: a.time }) + "\n";
   if (a.type === "turn") return JSON.stringify({ id: a.id, type: "turn", turn: a.turn, time: a.time }) + "\n";
   return JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes,
-    prompt: a.prompt || "card:1", ...(a.flags ? { flags: a.flags } : {}), ...(a.ticked ? { ticked: a.ticked } : {}) }) + "\n";
+    prompt: a.prompt || "card:1", ...(a.flags ? { flags: a.flags } : {}), ...(a.ticked ? { ticked: a.ticked } : {}),
+    ...(a.chosen ? { chosen: a.chosen } : {}), ...(a.reason ? { reason: a.reason } : {}) }) + "\n";
 }
 
 // ---------- loading and saving ----------
@@ -515,6 +516,8 @@ function showCard() {
   $("choice-options").hidden = true;
   $("choice-why").hidden = true;
   $("choice-continue").hidden = true;
+  $("choice-reason").hidden = true;
+  $("reason-text").value = "";
   $("came-back").hidden = false;
   const left = due.length;
   $("bar").style.width = `${(session.done / Math.max(1, session.done + left)) * 100}%`;
@@ -560,7 +563,7 @@ function showCard() {
 function showChoice(item) {
   const versions = item.choice.versions;
   const k = engine.reviewsOf(item.id) % versions.length;
-  current = { id: item.id, item, shown: Date.now(), prompt: `choice:${k + 1}` };
+  current = { id: item.id, item, shown: Date.now(), prompt: `choice:${k + 1}`, needsReason: (item.turn || 1) >= 2 };
   const v = versions[k];
   $("card-topic").textContent = `${CHANNEL.choice[1]} · ${topicTitle(item.id.split(".")[0])}`;
   rich($("card-front"), v.stem);
@@ -596,7 +599,11 @@ function pickChoice(button) {
     if (b.dataset.right === "true") b.classList.add("right");
   });
   $("choice-why").hidden = false;
-  if (button.dataset.right === "true") {
+  current.chosen = button.querySelector(".opt-text").textContent;
+  if (button.dataset.right === "true" && current.needsReason) {
+    $("choice-reason").hidden = false;
+    $("reason-text").focus();
+  } else if (button.dataset.right === "true") {
     $("ratings").hidden = false;
     $("know").hidden = true;
     $("came").hidden = false;
@@ -632,14 +639,19 @@ async function rate(rating) {
     time: now(), minutes: (Date.now() - current.shown) / 60000,
   };
   if ($("flag-heavy").getAttribute("aria-pressed") === "true") answer.flags = ["too-much"];
+  if (current.chosen) answer.chosen = current.chosen;
+  if (current.reason) answer.reason = current.reason;
   const ticked = [...$("card-points").children].flatMap((li, n) => (li.getAttribute("aria-checked") === "true" ? [n] : []));
   if (ticked.length) answer.ticked = ticked;
   const { item } = current;
-  current = null;
   session.done += 1;
   await outboxPut(answer);
-  engine.record(answer);
-  applied.push(answer);
+  // a reload from GitHub during the wait may already have applied it from the outbox; the card stays current meanwhile
+  if (!applied.some((a) => a.id === answer.id)) {
+    engine.record(answer);
+    applied.push(answer);
+  }
+  current = null;
   const last = !engine.flashcards(now()).length;
   // after No or With effort the explanation opens by itself; the next card waits for "Next card"
   if ((rating === 1 || rating === 2) && openExplain(item, true)) {
@@ -1096,6 +1108,13 @@ $("zoom-out").addEventListener("click", () => setZoom(zoom / 1.5));
 // "Did you know it?" then "How did it come?": Again, or Hard / Good / Easy
 $("know-no").addEventListener("click", () => rate(1));
 $("choice-continue").addEventListener("click", () => rate(1));
+// a right turn-2 pick: the reason is saved and graded in the next Claude session; Good until then
+$("reason-save").addEventListener("click", () => {
+  const reason = $("reason-text").value.trim();
+  if (!reason || !current) return $("reason-text").focus();
+  current.reason = reason;
+  rate(3);
+});
 $("know-yes").addEventListener("click", () => { $("know").hidden = true; $("came").hidden = false; });
 $("came-back").addEventListener("click", () => { $("came").hidden = true; $("know").hidden = false; });
 $("came-effort").addEventListener("click", () => rate(2));
