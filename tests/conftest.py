@@ -91,6 +91,7 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
         "graph-tools/tsv_write.py": (STUDY / "graph-tools/tsv_write.py").read_bytes(),
         "pilot/idea_links.tsv": (STUDY / "pilot/idea_links.tsv").read_bytes(),
         "lean/idea_links.tsv": (STUDY / "lean/idea_links.tsv").read_bytes(),
+        "lean/path.tsv": (STUDY / "lean/path.tsv").read_bytes(),
         "pilot/relevance_final.tsv": (STUDY / "pilot/relevance_final.tsv").read_bytes(),
         "pilot/practice/engine.py": (STUDY / "pilot/practice/engine.py").read_bytes(),
         "pilot/practice/config.json": json.dumps(TEST_CONFIG).encode(),

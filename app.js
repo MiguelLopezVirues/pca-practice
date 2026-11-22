@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.3";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.3";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.3";
-import { inline, rich } from "./rich.js?v=2026-11-22.3";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.4";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.4";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.4";
+import { inline, rich } from "./rich.js?v=2026-11-22.4";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-22.3";
+const VERSION = "2026-11-22.4";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -19,7 +19,7 @@ const ANSWERS = `${STATE_DIR}/answers.jsonl`;
 const TOPICS = "pilot/practice/topics.json";
 const EXPLAIN = "pilot/practice/explain";
 const READ_DIRS = ["pilot/practice/items", "pilot/practice/items_lean", STATE_DIR, EXPLAIN];
-const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "lean/idea_links.tsv", "pilot/relevance_final.tsv",
+const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "lean/idea_links.tsv", "lean/path.tsv", "pilot/relevance_final.tsv",
   "pilot/practice/engine.py", "pilot/practice/config.json", TOPICS];
 const MAX_TRIES = 4;
 const SAVE_EVERY = 5;
@@ -305,6 +305,13 @@ function renderToday() {
   $("hero-sub").textContent = left ? `About ${Math.max(1, Math.round(left * 0.4))} minutes of cards` : "Nothing due now";
   $("start").disabled = !left;
   $("ai-title").textContent = `${o.ai} open question${o.ai === 1 ? "" : "s"}`;
+  const ts = o.turn_status;
+  $("turn-next").hidden = !(ts.done && ts.next);
+  if (ts.done && ts.next) {
+    $("turn-next").dataset.turn = String(ts.next);
+    $("turn-next-title").textContent = `Turn ${ts.turn} done`;
+    $("turn-next-sub").textContent = `Every topic of turn ${ts.turn} read and its questions passed. Move to turn ${ts.next}`;
+  }
   const next = topics().find((t) => !o.read.includes(t.topic));
   $("next-topic").hidden = !next;
   if (next) {
@@ -1149,6 +1156,7 @@ document.querySelectorAll("[data-theme-choice]").forEach((b) => b.addEventListen
 }));
 $("change-token").addEventListener("click", () => { openToken(); $("token").focus(); });
 document.querySelectorAll("#turn-choice button").forEach((b) => b.addEventListener("click", () => setTurn(Number(b.dataset.setTurn))));
+$("turn-next").addEventListener("click", () => setTurn(Number($("turn-next").dataset.turn)));
 $("token-warning").addEventListener("click", () => { openToken(); $("token").focus(); });
 $("token-cancel").addEventListener("click", closeToken);
 $("sync").addEventListener("click", () => save());

@@ -66,7 +66,8 @@ def overview(now):
         if d in per_day:
             per_day[d] += 1
     return json.dumps({"due": sum(1 for i in fc if i in _eng.cards), "new": sum(1 for i in fc if i not in _eng.cards),
-                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day, "turn": _eng.current_turn})
+                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day, "turn": _eng.current_turn,
+                       "turn_status": _eng.turn_status()})
 
 # Every question with its status: due | new | learn | later | ai | locked.
 def card_list(now):

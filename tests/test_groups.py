@@ -115,6 +115,33 @@ def test_the_turn_set_in_settings_is_saved_like_an_answer(context, page_origin, 
     assert page.locator("#cards-turns button.on").get_attribute("data-turn") == "2"
 
 
+def test_today_offers_the_next_turn_once_the_turn_is_done(context, page_origin, repo, tmp_path):
+    from conftest import STATE, T0, desktop_apply, save_now, seed_files
+    from test_page import answers, serve_files
+    page = open_page(context, page_origin, repo, practice=False)
+    assert not page.locator("#turn-next").is_visible()
+    topic = "FND-virtualization"
+    files = seed_files(tmp_path)
+    files["lean/path.tsv"] = (f"position\tturn\ttopic\tideas\texam\tneeds\n1\t1\t{topic}\t{topic}#1;{topic}#2;{topic}#3\t\t\n"
+                              f"2\t2\t{topic}\t{topic}#9\t\t\n").encode()
+    files.update(desktop_apply(files, [("read", topic, T0)], tmp_path))
+    state = json.loads(files[STATE + "state.json"])
+    for iid in items_by_id(files):
+        if iid.startswith(topic + "."):
+            state["items"][iid]["passed"] = True
+    files[STATE + "state.json"] = json.dumps(state).encode()
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r, practice=False)
+        assert page.locator("#turn-next-title").inner_text() == "Turn 1 done"
+        page.click("#turn-next")
+        page.wait_for_selector("#turn-next", state="hidden")
+        save_now(page)
+        assert [(a["type"], a["turn"]) for a in answers(r)] == [("turn", 2)]
+    finally:
+        server.shutdown()
+
+
 def test_the_topic_sheet_names_prerequisites_not_passed_yet(context, page_origin, repo):
     from conftest import open_groups
     page = open_page(context, page_origin, repo, practice=False)
