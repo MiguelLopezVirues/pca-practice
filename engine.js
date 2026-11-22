@@ -36,8 +36,9 @@ def item(item_id):
 def reviews_of(item_id):
     return sum(1 for r in _eng.reviews if r["item"] == item_id)
 
-def record(item_id, rating, now, minutes, prompt):
-    _eng.record(item_id, int(rating), datetime.fromisoformat(now), prompt_id=prompt, minutes=round(float(minutes), 2))
+def record(item_id, rating, now, minutes, prompt, ticked):
+    _eng.record(item_id, int(rating), datetime.fromisoformat(now), prompt_id=prompt, minutes=round(float(minutes), 2),
+                ticked=json.loads(ticked))
     _eng.save("${PRACTICE}")
 
 def mark_read(topic, now):
@@ -142,7 +143,8 @@ export class Engine {
       return JSON.parse(this.py.globals.get("mark_read")(answer.topic, answer.time));
     }
     if (answer.type === "turn") return this.py.globals.get("set_turn")(answer.turn, answer.time);
-    this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1");
+    this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1",
+      JSON.stringify(answer.ticked ?? null));
   }
 
   overview(nowIso) {

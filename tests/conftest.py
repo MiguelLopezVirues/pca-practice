@@ -234,13 +234,23 @@ STEPS = {1: ["#know-no"], 2: ["#know-yes", "#came-effort"], 3: ["#know-yes", "#c
          4: ["#know-yes", "#came-instantly"]}
 
 
+def next_card(page, before):
+    """Wait until the page has moved past the card whose front was `before` (the answer is stored asynchronously)."""
+    page.wait_for_function(
+        "prev => document.querySelector('#card-front').innerText !== prev"
+        " || !document.querySelector('#done').hidden || !document.querySelector('#explain-view').hidden",
+        arg=before)
+
+
 def rate(page, rating):
     """No and With effort open the explanation first; 'Next card' moves on."""
+    before = page.locator("#card-front").inner_text()
     page.click("#reveal")
     for selector in STEPS[rating]:
         page.click(selector)
     if rating in (1, 2):
         page.click("#explain-next")
+    next_card(page, before)
     return settle(page)
 
 

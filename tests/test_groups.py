@@ -106,7 +106,7 @@ def test_the_turn_set_in_settings_is_saved_like_an_answer(context, page_origin, 
     page = open_page(context, page_origin, repo, practice=False)
     page.click("#tabs [data-tab='settings']")
     page.click("#turn-choice [data-set-turn='2']")
-    assert page.locator("#turn-choice [data-set-turn='2']").get_attribute("class") == "on"
+    page.wait_for_selector("#turn-choice [data-set-turn='2'].on")
     save_now(page)
     expected = desktop_apply(seed, [("turn", 2, T0)], tmp_path)
     same_state(repo.files(), {p: d for p, d in expected.items() if not p.endswith("answers.jsonl")})

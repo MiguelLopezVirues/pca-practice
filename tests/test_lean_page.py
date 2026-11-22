@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 from urllib.parse import unquote
 
-from conftest import T0, desktop_apply, items_by_id, open_page, plain, rate, save_now, seed_files, settle
+from conftest import STATE, T0, desktop_apply, items_by_id, next_card, open_page, plain, rate, save_now, seed_files, settle
 from test_page import answers, serve_files
 
 LEAN_TOPIC = "FND-virtualization"
@@ -128,5 +128,48 @@ def test_turn_2_multiple_choice_asks_for_the_reason_and_saves_it(context, page_o
         last = answers(r)[-1]
         assert (last["item"], last["rating"], last["reason"]) == (item, 3, "Only the VM carries its own OS")
         assert last["chosen"]
+    finally:
+        server.shutdown()
+
+
+def test_whole_list_ticks_send_unticked_parts_back(context, page_origin, tmp_path):
+    topic = "CLD-cloud-computing-traits"
+    files = seed_files(tmp_path)
+    files.update(desktop_apply(files, [("read", topic, T0)], tmp_path))
+    whole = next(q for q in json.loads(files[f"pilot/practice/items_lean/{topic}.json"]) if q.get("parts"))
+    state = json.loads(files[STATE + "state.json"])
+    for p in whole["parts"]:
+        state["items"][p]["passed"] = True
+    files[STATE + "state.json"] = json.dumps(state).encode()
+    fronts = {plain(f) for f in whole["card"]["fronts"]}
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r)
+        for _ in range(40):
+            front = page.locator("#card-front").inner_text()
+            if plain(front) in fronts:
+                break
+            if page.locator("#choice-options").is_visible():
+                page.click(".opt[data-right='true']")
+                page.click("#came-moment")
+                next_card(page, front)
+                settle(page)
+            else:
+                rate(page, 3)
+        else:
+            raise AssertionError("the whole-list card never showed")
+        front = page.locator("#card-front").inner_text()
+        page.click("#reveal")
+        page.locator("#card-points li").first.click()
+        page.click("#know-yes")
+        page.click("#came-moment")
+        next_card(page, front)
+        settle(page)
+        save_now(page)
+        last = answers(r)[-1]
+        assert (last["item"], last["ticked"]) == (whole["id"], [0])
+        saved = json.loads(r.files()[STATE + "state.json"])["items"]
+        assert saved[whole["parts"][1]]["forced"] == ["part"]
+        assert "part" not in saved[whole["parts"][0]]["forced"]
     finally:
         server.shutdown()
