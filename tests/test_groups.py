@@ -97,3 +97,29 @@ def test_turn_switch_shows_one_turn_and_counts_each(context, page_origin, repo):
     shown = page.locator("#cards-list .card-row").all()
     assert all(r.get_attribute("data-turn") == "2" for r in shown if r.is_visible())
     assert any(r.is_visible() for r in shown) or second == 0
+
+
+def test_the_turn_set_in_settings_is_saved_like_an_answer(context, page_origin, repo, tmp_path):
+    from conftest import STATE, T0, desktop_apply, save_now
+    from test_page import answers, same_state
+    seed = repo.files()
+    page = open_page(context, page_origin, repo, practice=False)
+    page.click("#tabs [data-tab='settings']")
+    page.click("#turn-choice [data-set-turn='2']")
+    assert page.locator("#turn-choice [data-set-turn='2']").get_attribute("class") == "on"
+    save_now(page)
+    expected = desktop_apply(seed, [("turn", 2, T0)], tmp_path)
+    same_state(repo.files(), {p: d for p, d in expected.items() if not p.endswith("answers.jsonl")})
+    assert [(a["type"], a["turn"]) for a in answers(repo)] == [("turn", 2)]
+    page.click("#tabs [data-tab='cards']")
+    assert page.locator("#cards-turns button.on").get_attribute("data-turn") == "2"
+
+
+def test_the_topic_sheet_names_prerequisites_not_passed_yet(context, page_origin, repo):
+    from conftest import open_groups
+    page = open_page(context, page_origin, repo, practice=False)
+    page.click("#tabs [data-tab='topics']")
+    button = ".topic-card[data-topic='CLD-cloud-computing-traits'] .topic-actions .btn.primary"
+    open_groups(page, button)
+    page.click(button)
+    assert "Virtualization" in page.locator("#topic-warn").inner_text()

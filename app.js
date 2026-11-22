@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-18.3";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-18.3";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-18.3";
-import { inline, rich } from "./rich.js?v=2026-11-18.3";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.1";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.1";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.1";
+import { inline, rich } from "./rich.js?v=2026-11-22.1";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-18.3";
+const VERSION = "2026-11-22.1";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -19,7 +19,7 @@ const ANSWERS = `${STATE_DIR}/answers.jsonl`;
 const TOPICS = "pilot/practice/topics.json";
 const EXPLAIN = "pilot/practice/explain";
 const READ_DIRS = ["pilot/practice/items", "pilot/practice/items_lean", STATE_DIR, EXPLAIN];
-const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "pilot/relevance_final.tsv",
+const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "lean/idea_links.tsv", "pilot/relevance_final.tsv",
   "pilot/practice/engine.py", "pilot/practice/config.json", TOPICS];
 const MAX_TRIES = 4;
 const SAVE_EVERY = 5;
@@ -127,6 +127,7 @@ function answerIds(text) {
 
 function logLine(a) {
   if (a.type === "read") return JSON.stringify({ id: a.id, type: "read", topic: a.topic, time: a.time }) + "\n";
+  if (a.type === "turn") return JSON.stringify({ id: a.id, type: "turn", turn: a.turn, time: a.time }) + "\n";
   return JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes,
     prompt: a.prompt || "card:1", ...(a.flags ? { flags: a.flags } : {}), ...(a.ticked ? { ticked: a.ticked } : {}) }) + "\n";
 }
@@ -159,6 +160,7 @@ async function loadFromGitHub(gh) {
 function commitMessage(batch) {
   if (batch.length > 1) return `practice: ${batch.length} answers (phone)`;
   const a = batch[0];
+  if (a.type === "turn") return `practice: turn ${a.turn} (phone)`;
   return a.type === "read" ? `practice: ${a.topic} read (phone)` : `practice: ${a.item} rated ${a.rating} (phone)`;
 }
 
@@ -265,6 +267,17 @@ function render() {
 function renderSettings() {
   $("page-version").textContent = `Page version ${VERSION}`;
   $("explain-count").textContent = base ? `Explanations for ${explanations().size} questions` : "Not loaded yet";
+  const turn = engine && base ? engine.overview(now()).turn : null;
+  document.querySelectorAll("#turn-choice button").forEach((b) => b.classList.toggle("on", Number(b.dataset.setTurn) === turn));
+}
+
+// Moving to another turn opens its questions in the topics read; saved like an answer.
+async function setTurn(n) {
+  if (!engine || !base || engine.overview(now()).turn === n) return;
+  await keep({ id: crypto.randomUUID(), type: "turn", turn: n, time: now() }, true);
+  viewTurn = n;
+  if (tab !== "practice") setState(showCard());
+  render();
 }
 
 // Phones keep a page open for days: when a newer one is published, offer to reload it.
@@ -356,6 +369,13 @@ function openTopic(topicId) {
   $("topic-sub").textContent = `About ${t.minutes} minutes of reading · ${opens} questions open once you have read it`;
   $("read-link").href = `obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(t.note.replace(/\.md$/, ""))}`;
   $("mark-read").dataset.topic = t.topic;
+  const missing = engine.missing(t.topic).map((u) => {
+    const idea = ideas().get(u);
+    return idea ? `${topicTitle(idea.topic)} · ${idea.n}. ${idea.label}` : u;
+  });
+  $("topic-warn").hidden = !missing.length;
+  $("topic-warn").textContent = missing.length
+    ? `It builds on ideas whose first questions you have not passed yet: ${missing.join("; ")}.` : "";
   openSheet("topic-sheet");
 }
 
@@ -1109,6 +1129,7 @@ document.querySelectorAll("[data-theme-choice]").forEach((b) => b.addEventListen
   applyTheme();
 }));
 $("change-token").addEventListener("click", () => { openToken(); $("token").focus(); });
+document.querySelectorAll("#turn-choice button").forEach((b) => b.addEventListener("click", () => setTurn(Number(b.dataset.setTurn))));
 $("token-warning").addEventListener("click", () => { openToken(); $("token").focus(); });
 $("token-cancel").addEventListener("click", closeToken);
 $("sync").addEventListener("click", () => save());

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-18.3">
-<script src="theme.js?v=2026-11-18.3"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-22.1">
+<script src="theme.js?v=2026-11-22.1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -170,6 +170,16 @@
 <!-- Settings -->
 <section id="view-settings" class="view" hidden>
   <h1>Settings</h1>
+  <div class="label">Study</div>
+  <div class="surface rows">
+    <div class="rowi"><div class="ic" data-icon="chart"></div><div class="tx"><b>Study turn</b><span>Questions of later turns stay closed</span></div>
+      <div id="turn-choice" class="seg narrow">
+        <button type="button" data-set-turn="1">1</button>
+        <button type="button" data-set-turn="2">2</button>
+        <button type="button" data-set-turn="3">3</button>
+      </div>
+    </div>
+  </div>
   <div class="label">Appearance</div>
   <div class="surface rows">
     <div class="rowi"><div class="ic" data-icon="sun"></div><div class="tx"><b>Theme</b></div>
@@ -242,6 +252,7 @@
   <div class="grab"></div>
   <h2 id="topic-title"></h2>
   <p id="topic-sub" class="sub"></p>
+  <p id="topic-warn" class="warn-line" hidden></p>
   <div class="stack2">
     <a id="read-link" class="btn quiet"><span data-icon="book"></span>Read the note in Obsidian</a>
     <button id="mark-read" class="btn primary" type="button">I've read it · open its cards</button>
@@ -260,6 +271,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-18.3"></script>
+<script type="module" src="app.js?v=2026-11-22.1"></script>
 </body>
 </html>

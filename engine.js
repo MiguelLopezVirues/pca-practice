@@ -45,6 +45,14 @@ def mark_read(topic, now):
     _eng.save("${PRACTICE}")
     return json.dumps(warnings or [])
 
+def set_turn(turn, now):
+    _eng.set_turn(int(turn), datetime.fromisoformat(now))
+    _eng.save("${PRACTICE}")
+
+# The ideas a topic builds on whose first questions have not passed yet.
+def missing(topic):
+    return json.dumps(sorted(_eng._missing(topic)))
+
 # Today: flashcards due again and new, questions for an AI session, topics read, answers per day (last 7 days).
 def overview(now):
     t = datetime.fromisoformat(now)
@@ -57,7 +65,7 @@ def overview(now):
         if d in per_day:
             per_day[d] += 1
     return json.dumps({"due": sum(1 for i in fc if i in _eng.cards), "new": sum(1 for i in fc if i not in _eng.cards),
-                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day, "turn": _eng.cfg.turn})
+                       "ai": len(q) - len(fc), "read": list(_eng.read), "per_day": per_day, "turn": _eng.current_turn})
 
 # Every question with its status: due | new | learn | later | ai | locked.
 def card_list(now):
@@ -133,6 +141,7 @@ export class Engine {
     if (answer.type === "read") {
       return JSON.parse(this.py.globals.get("mark_read")(answer.topic, answer.time));
     }
+    if (answer.type === "turn") return this.py.globals.get("set_turn")(answer.turn, answer.time);
     this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1");
   }
 
@@ -142,6 +151,10 @@ export class Engine {
 
   cardList(nowIso) {
     return JSON.parse(this.py.globals.get("card_list")(nowIso));
+  }
+
+  missing(topic) {
+    return JSON.parse(this.py.globals.get("missing")(topic));
   }
 
   stateFiles() {

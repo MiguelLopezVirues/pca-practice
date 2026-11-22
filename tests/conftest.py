@@ -60,6 +60,8 @@ def desktop_apply(files: dict[str, bytes], steps, tmp: Path) -> dict[str, bytes]
     for step in steps:
         if step[0] == "read":
             eng.mark_read(step[1], step[2])
+        elif step[0] == "turn":
+            eng.set_turn(step[1], step[2])
         else:
             eng.record(step[1], step[2], step[3], prompt_id=step[4] if len(step) > 4 else "card:1")
     eng.save(practice)
@@ -88,6 +90,7 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
     files = {
         "graph-tools/tsv_write.py": (STUDY / "graph-tools/tsv_write.py").read_bytes(),
         "pilot/idea_links.tsv": (STUDY / "pilot/idea_links.tsv").read_bytes(),
+        "lean/idea_links.tsv": (STUDY / "lean/idea_links.tsv").read_bytes(),
         "pilot/relevance_final.tsv": (STUDY / "pilot/relevance_final.tsv").read_bytes(),
         "pilot/practice/engine.py": (STUDY / "pilot/practice/engine.py").read_bytes(),
         "pilot/practice/config.json": json.dumps(TEST_CONFIG).encode(),
