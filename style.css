@@ -66,7 +66,7 @@ body.practising .tabs { display:none; }
 .stats b { display:block; font-size:1.3rem; font-weight:650; } .stats span { font-size:.75rem; color:var(--muted); display:inline-flex; align-items:center; gap:.3rem; }
 .dot { width:.5rem; height:.5rem; border-radius:50%; display:inline-block; flex:none; }
 .dot.due { background:var(--orange); } .dot.new { background:var(--sky); } .dot.ai { background:var(--accent); }
-.dot.learn { background:var(--purple); } .dot.later { background:var(--line); } .dot.locked { background:transparent; border:1.5px solid var(--faint); }
+.dot.learn { background:var(--purple); } .dot.later { background:var(--line); } .dot.locked { background:transparent; border:1.5px solid var(--faint); } .dot.aside { background:transparent; border:1.5px dashed var(--faint); }
 .rows { overflow:hidden; }
 .rowi { display:flex; align-items:center; gap:.85rem; padding:.9rem 1rem; width:100%; text-align:left; background:none; border:0; }
 .rowi + .rowi { border-top:1px solid var(--line); }

@@ -50,6 +50,10 @@ def set_turn(turn, now):
     _eng.set_turn(int(turn), datetime.fromisoformat(now))
     _eng.save("${PRACTICE}")
 
+def set_aside(item_id, aside, now):
+    _eng.mute(item_id, bool(aside), datetime.fromisoformat(now))
+    _eng.save("${PRACTICE}")
+
 # The ideas a topic builds on whose first questions have not passed yet.
 def missing(topic):
     return json.dumps(sorted(_eng._missing(topic)))
@@ -78,7 +82,9 @@ def card_list(now):
     for iid, it in _eng.items.items():
         c = _eng.cards.get(iid)
         fc = _phone(it)
-        if iid in q:
+        if _eng.st[iid].muted:
+            s = "aside"
+        elif iid in q:
             s = ("due" if c else "new") if fc else "ai"
         elif c is not None:
             s = "learn" if c.state in (State.Learning, State.Relearning) else "later"
@@ -144,6 +150,7 @@ export class Engine {
       return JSON.parse(this.py.globals.get("mark_read")(answer.topic, answer.time));
     }
     if (answer.type === "turn") return this.py.globals.get("set_turn")(answer.turn, answer.time);
+    if (answer.type === "aside") return this.py.globals.get("set_aside")(answer.item, answer.aside, answer.time);
     this.py.globals.get("record")(answer.item, answer.rating, answer.time, answer.minutes, answer.prompt || "card:1",
       JSON.stringify(answer.ticked ?? null));
   }

@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-22.4";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-22.4";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-22.4";
-import { inline, rich } from "./rich.js?v=2026-11-22.4";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-23.1";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-23.1";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-23.1";
+import { inline, rich } from "./rich.js?v=2026-11-23.1";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-22.4";
+const VERSION = "2026-11-23.1";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -32,8 +32,8 @@ const LABELS = {
 };
 const SYNC_LABELS = { idle: "Saved", saving: "Saving…", offline: "Offline", "token-expired": "Not saved", error: "Not saved" };
 const CHANNEL = { flashcard: ["card", "Self-graded"], choice: ["choice", "Multiple choice"], ai: ["pen", "Open · AI"] };
-const STATUS = { due: "Due now", new: "New", learn: "Learning", later: "Later", ai: "Needs AI", locked: "Opens later" };
-const FILTERS = ["all", "due", "new", "learn", "ai", "later", "locked"];
+const STATUS = { due: "Due now", new: "New", learn: "Learning", later: "Later", ai: "Needs AI", locked: "Opens later", aside: "Set aside" };
+const FILTERS = ["all", "due", "new", "learn", "ai", "later", "locked", "aside"];
 
 // ---------- icons: one set, 24-unit grid, built as DOM nodes ----------
 const P = {
@@ -128,6 +128,7 @@ function answerIds(text) {
 function logLine(a) {
   if (a.type === "read") return JSON.stringify({ id: a.id, type: "read", topic: a.topic, time: a.time }) + "\n";
   if (a.type === "turn") return JSON.stringify({ id: a.id, type: "turn", turn: a.turn, time: a.time }) + "\n";
+  if (a.type === "aside") return JSON.stringify({ id: a.id, type: "aside", item: a.item, aside: a.aside, time: a.time }) + "\n";
   return JSON.stringify({ id: a.id, item: a.item, rating: a.rating, time: a.time, minutes: a.minutes,
     prompt: a.prompt || "card:1", ...(a.flags ? { flags: a.flags } : {}), ...(a.ticked ? { ticked: a.ticked } : {}),
     ...(a.chosen ? { chosen: a.chosen } : {}), ...(a.reason ? { reason: a.reason } : {}) }) + "\n";
@@ -162,6 +163,7 @@ function commitMessage(batch) {
   if (batch.length > 1) return `practice: ${batch.length} answers (phone)`;
   const a = batch[0];
   if (a.type === "turn") return `practice: turn ${a.turn} (phone)`;
+  if (a.type === "aside") return `practice: ${a.item} ${a.aside ? "set aside" : "brought back"} (phone)`;
   return a.type === "read" ? `practice: ${a.topic} read (phone)` : `practice: ${a.item} rated ${a.rating} (phone)`;
 }
 
@@ -278,6 +280,16 @@ async function setTurn(n) {
   await keep({ id: crypto.randomUUID(), type: "turn", turn: n, time: now() }, true);
   viewTurn = n;
   if (tab !== "practice") setState(showCard());
+  render();
+}
+
+// "Not now": a question set aside is not asked and does not hold its turn open; Cards brings it back.
+async function setAside(id, aside) {
+  if (!engine || !base) return;
+  if (current?.id === id) current = null;
+  await keep({ id: crypto.randomUUID(), type: "aside", item: id, aside, time: now() }, true);
+  if (tab === "practice") setState(showCard());
+  else if (!$("preview").hidden) $("preview-aside").textContent = aside ? "Bring back" : "Not now: set aside";
   render();
 }
 
@@ -1017,6 +1029,9 @@ function preview(id) {
   $("preview-back-box").hidden = true;
   $("preview-reveal").hidden = false;
   $("preview-ai").hidden = flash || Boolean(choice);
+  const aside = cardList().find((c) => c.id === id)?.status === "aside";
+  $("preview-aside").textContent = aside ? "Bring back" : "Not now: set aside";
+  $("preview-aside").onclick = () => setAside(id, $("preview-aside").textContent !== "Bring back");
   $("preview").hidden = false;
   $("preview").scrollTop = 0;
 }
@@ -1157,6 +1172,7 @@ document.querySelectorAll("[data-theme-choice]").forEach((b) => b.addEventListen
 $("change-token").addEventListener("click", () => { openToken(); $("token").focus(); });
 document.querySelectorAll("#turn-choice button").forEach((b) => b.addEventListener("click", () => setTurn(Number(b.dataset.setTurn))));
 $("turn-next").addEventListener("click", () => setTurn(Number($("turn-next").dataset.turn)));
+$("not-now").addEventListener("click", () => current && setAside(current.id, true));
 $("token-warning").addEventListener("click", () => { openToken(); $("token").focus(); });
 $("token-cancel").addEventListener("click", closeToken);
 $("sync").addEventListener("click", () => save());
