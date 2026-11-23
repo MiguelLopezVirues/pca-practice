@@ -1,7 +1,7 @@
 """Topics and Cards grouped by order concern, folded, with counts in fields, and a turn switch.
 
 Contract:
-- Each topic in topics.json has a `concern`; concerns appear in the order of their first topic.
+- A topic's concern comes from `lean/concerns.tsv` by its id prefix; concerns appear in the order of their first topic.
 - Topics tab: `.concern[data-concern]` (details) > `.topic-card[data-topic]` > `.idea[data-unit]`, all folded at first;
   opening a group folds its open siblings. Headers carry counts as `.pill[data-count=<kind>]` with the number in `b`.
 - Cards tab: grouped by concern by default (`.card-group[data-level='concern']` > `.card-group[data-level='topic']`),
@@ -14,11 +14,11 @@ from __future__ import annotations
 
 import json
 
-from conftest import items_by_id, open_page
+from conftest import items_by_id, open_page, topics_with_concern
 
 
 def topics(files):
-    return json.loads(files["pilot/practice/topics.json"])
+    return topics_with_concern(files)
 
 
 def turn_of(it):
@@ -47,6 +47,23 @@ def test_topics_are_grouped_by_concern_with_counts(context, page_origin, repo):
     asked = [it for it in items.values() if it["unit"].split(".")[0] in mine and turn_of(it) == 1]
     assert pill(first, "questions") == str(len(asked))
     assert not page.locator(".topic-card").first.is_visible()
+
+
+def test_concerns_come_from_the_lean_graph(context, page_origin, tmp_path):
+    from conftest import seed_files
+    from test_page import serve_files
+    files = seed_files(tmp_path)
+    files["lean/concerns.tsv"] = files["lean/concerns.tsv"].replace(b"Cloud basics", b"Cloud first steps")
+    files["pilot/practice/topics.json"] = json.dumps(
+        [{k: v for k, v in t.items() if k != "concern"} for t in json.loads(files["pilot/practice/topics.json"])]).encode()
+    r, server = serve_files(files)
+    try:
+        page = open_page(context, page_origin, r, practice=False)
+        page.click("#tabs [data-tab='topics']")
+        names = [c.get_attribute("data-concern") for c in page.locator("#topics-list .concern").all()]
+        assert names[0] == "Cloud first steps" and "Other" not in names
+    finally:
+        server.shutdown()
 
 
 def test_opening_a_group_folds_its_siblings(context, page_origin, repo):

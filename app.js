@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-23.1";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-23.1";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-23.1";
-import { inline, rich } from "./rich.js?v=2026-11-23.1";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-23.2";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-23.2";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-23.2";
+import { inline, rich } from "./rich.js?v=2026-11-23.2";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-23.1";
+const VERSION = "2026-11-23.2";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -17,9 +17,10 @@ const THEME_KEY = "pca-theme";
 const VAULT = "vault";  // the vault name Obsidian shows on the phone (the GitSync copy of pca-study/vault)
 const ANSWERS = `${STATE_DIR}/answers.jsonl`;
 const TOPICS = "pilot/practice/topics.json";
+const CONCERNS = "lean/concerns.tsv";
 const EXPLAIN = "pilot/practice/explain";
 const READ_DIRS = ["pilot/practice/items", "pilot/practice/items_lean", STATE_DIR, EXPLAIN];
-const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "lean/idea_links.tsv", "lean/path.tsv", "pilot/relevance_final.tsv",
+const READ_FILES = ["graph-tools/tsv_write.py", "pilot/idea_links.tsv", "lean/idea_links.tsv", "lean/path.tsv", "lean/concerns.tsv", "pilot/relevance_final.tsv",
   "pilot/practice/engine.py", "pilot/practice/config.json", TOPICS];
 const MAX_TRIES = 4;
 const SAVE_EVERY = 5;
@@ -95,9 +96,24 @@ let viewTurn = null;  // the turn shown in Cards and Topics: "all" or 1-3; start
 
 const now = () => new Date().toISOString();
 const channelOf = (c) => (CHANNEL[c] ? c : "ai");
+let topicsCache = { files: null, list: [] };
 const topics = () => {
-  try { return JSON.parse(base?.files?.[TOPICS] || "[]"); } catch { return []; }
+  if (topicsCache.files === base?.files) return topicsCache.list;
+  const names = concernByPrefix();
+  let list = [];
+  try {
+    list = JSON.parse(base?.files?.[TOPICS] || "[]").map((t) => ({ ...t, concern: names[t.topic.split("-")[0]] || t.concern || "Other" }));
+  } catch { /* no reading list yet */ }
+  topicsCache = { files: base?.files, list };
+  return list;
 };
+// lean/concerns.tsv: topic id prefix -> concern name
+function concernByPrefix() {
+  const [head, ...rows] = (base?.files?.[CONCERNS] || "").replace(/^\uFEFF/, "").split(/\r?\n/).map((l) => l.split("\t"));
+  const p = head?.indexOf("prefix") ?? -1;
+  const c = head?.indexOf("concern") ?? -1;
+  return p < 0 || c < 0 ? {} : Object.fromEntries(rows.filter((r) => r[p] && r[c]).map((r) => [r[p], r[c]]));
+}
 const topicTitle = (id) => topics().find((t) => t.topic === id)?.title || id;
 
 function setState(state, detail = "") {

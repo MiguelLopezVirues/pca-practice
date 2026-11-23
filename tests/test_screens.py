@@ -22,12 +22,12 @@ import json
 from urllib.parse import quote
 
 from conftest import (FIRST_TOPIC, STATE, T0, click_row, desktop_apply, desktop_queue, items_by_id, open_page, plain,
-                      rate, save_now)
+                      rate, save_now, topics_with_concern)
 from test_page import answers, front_of, same_state
 
 
 def topics(files):
-    return json.loads(files["pilot/practice/topics.json"])
+    return topics_with_concern(files)
 
 
 def today(context, page_origin, repo):

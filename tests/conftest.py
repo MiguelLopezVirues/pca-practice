@@ -75,6 +75,15 @@ def desktop_queue(files: dict[str, bytes], now, tmp: Path) -> list[str]:
     return eng.queue(now)
 
 
+def topics_with_concern(files: dict[str, bytes]) -> list[dict]:
+    """topics.json, each topic with its concern from lean/concerns.tsv (by id prefix)."""
+    rows = files["lean/concerns.tsv"].decode("utf-8-sig").splitlines()
+    head = rows[0].split("\t")
+    names = {c[head.index("prefix")]: c[head.index("concern")] for c in (r.split("\t") for r in rows[1:] if r.strip())}
+    return [{**t, "concern": names.get(t["topic"].split("-")[0], "Other")}
+            for t in json.loads(files["pilot/practice/topics.json"])]
+
+
 def items_by_id(files: dict[str, bytes]) -> dict[str, dict]:
     """Networking items and lean questions (items_lean), by id."""
     out = {}
@@ -92,6 +101,7 @@ def seed_files(tmp: Path, mutate_items=None) -> dict[str, bytes]:
         "pilot/idea_links.tsv": (STUDY / "pilot/idea_links.tsv").read_bytes(),
         "lean/idea_links.tsv": (STUDY / "lean/idea_links.tsv").read_bytes(),
         "lean/path.tsv": (STUDY / "lean/path.tsv").read_bytes(),
+        "lean/concerns.tsv": (STUDY / "lean/concerns.tsv").read_bytes(),
         "pilot/relevance_final.tsv": (STUDY / "pilot/relevance_final.tsv").read_bytes(),
         "pilot/practice/engine.py": (STUDY / "pilot/practice/engine.py").read_bytes(),
         "pilot/practice/config.json": json.dumps(TEST_CONFIG).encode(),
