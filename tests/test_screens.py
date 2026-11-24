@@ -22,7 +22,7 @@ import json
 from urllib.parse import quote
 
 from conftest import (FIRST_TOPIC, STATE, T0, click_row, desktop_apply, desktop_queue, items_by_id, open_page, plain,
-                      rate, save_now, topics_with_concern)
+                      rate, save_now, shown_order, topics_with_concern)
 from test_page import answers, front_of, same_state
 
 
@@ -169,7 +169,7 @@ def test_progress_shows_each_topic_in_reading_order(context, page_origin, repo):
     page = today(context, page_origin, repo)
     page.click("#tabs [data-tab='progress']")
     bars = page.locator(".topic-progress")
-    assert [b.get_attribute("data-topic") for b in bars.all()] == [t["topic"] for t in topics(seed)]
+    assert [b.get_attribute("data-topic") for b in bars.all()] == shown_order(seed)
     first = bars.nth(0)
     def topic_of(it):  # the engine's rule
         return it["unit"] if it.get("facet") == "T" else it["unit"].rsplit(".", 1)[0]

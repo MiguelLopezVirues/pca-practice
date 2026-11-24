@@ -163,7 +163,7 @@ def test_the_topic_sheet_names_prerequisites_not_passed_yet(context, page_origin
     from conftest import open_groups
     page = open_page(context, page_origin, repo, practice=False)
     page.click("#tabs [data-tab='topics']")
-    button = ".topic-card[data-topic='CLD-cloud-computing-traits'] .topic-actions .btn.primary"
+    button = ".topic-card[data-topic='RM-organization-node'] .topic-actions .btn.primary"
     open_groups(page, button)
     page.click(button)
-    assert "Virtualization" in page.locator("#topic-warn").inner_text()
+    assert "Who can do what on which resource" in page.locator("#topic-warn").inner_text()

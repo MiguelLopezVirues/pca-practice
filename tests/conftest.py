@@ -84,6 +84,13 @@ def topics_with_concern(files: dict[str, bytes]) -> list[dict]:
             for t in json.loads(files["pilot/practice/topics.json"])]
 
 
+def shown_order(files: dict[str, bytes]) -> list[str]:
+    """Topics as Topics and Progress show them: grouped by concern (in the order of each concern's first topic)."""
+    ts = topics_with_concern(files)
+    concerns = list(dict.fromkeys(t["concern"] for t in ts))
+    return [t["topic"] for c in concerns for t in ts if t["concern"] == c]
+
+
 def items_by_id(files: dict[str, bytes]) -> dict[str, dict]:
     """Networking items and lean questions (items_lean), by id."""
     out = {}

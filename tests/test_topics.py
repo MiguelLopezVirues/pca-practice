@@ -17,7 +17,7 @@ import json
 import re
 from pathlib import Path
 
-from conftest import PAGE_DIR, items_by_id, open_groups, open_page
+from conftest import PAGE_DIR, items_by_id, open_groups, open_page, shown_order
 
 VERSION_RE = re.compile(r'const VERSION = "([^"]+)"')
 
@@ -60,7 +60,7 @@ def test_topics_show_ideas_with_their_questions_and_links(context, page_origin, 
     seed = repo.files()
     items = items_by_id(seed)
     ex = explain_files(seed)
-    order = [t["topic"] for t in json.loads(seed["pilot/practice/topics.json"])]
+    order = shown_order(seed)
     page = open_page(context, page_origin, repo, practice=False)
     page.click("#tabs [data-tab='topics']")
     assert [c.get_attribute("data-topic") for c in page.locator(".topic-card").all()] == order
