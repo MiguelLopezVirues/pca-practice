@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.2";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.2";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.2";
-import { inline, rich } from "./rich.js?v=2026-11-24.2";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.3";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.3";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.3";
+import { inline, rich } from "./rich.js?v=2026-11-24.3";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-24.2";
+const VERSION = "2026-11-24.3";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -1256,9 +1256,19 @@ $("token-form").addEventListener("submit", async (ev) => {
   setState("loading");
   const snap = await snapshotGet();
   if (snap?.repo === `${API}/${REPO}`) {
-    await loadBase(snap);
-    setState(showCard());
-    render();
+    try {
+      await loadBase(snap);
+      setState(showCard());
+      render();
+    } catch (e) {
+      // the stored copy (with its own engine.py) cannot run: drop it and read GitHub instead
+      console.error(e);
+      note("stored", `stored copy failed (${e.message})`);
+      base = null;
+    }
   }
   await save();
-})();
+})().catch((e) => {
+  console.error(e);
+  setState("error", e.message);
+});

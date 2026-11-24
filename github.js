@@ -1,5 +1,5 @@
 // GitHub Git Data API: read the needed files (cached by object id) and save files in one commit.
-import { cacheGet, cachePut } from "./store.js?v=2026-11-24.2";
+import { cacheGet, cachePut } from "./store.js?v=2026-11-24.3";
 
 const READ_PARALLEL = 8;
 

@@ -102,6 +102,19 @@ def test_ready_status_says_how_long_the_page_took_to_load(context, page_origin, 
     assert re.fullmatch(r"Ready \(\d+ s\)", page.locator("#status").inner_text())
 
 
+def test_a_stored_copy_that_cannot_run_is_replaced_from_github_not_stuck_loading(context, page_origin, repo):
+    path = "pilot/practice/engine.py"
+    good = repo.files()[path]
+    broken = re.sub(rb"(    def queue\(self, now\):\r?\n)", rb"\1        raise RuntimeError('broken')\n", good, count=1)
+    assert broken != good
+    repo.push_external({path: broken})
+    page = open_page(context, page_origin, repo, practice=False)
+    assert page.locator("#status").get_attribute("data-state") == "error"
+    repo.push_external({path: good})
+    page.reload()
+    assert settle(page) == "ready"
+
+
 # ---------- saving ----------
 def test_rating_saves_one_commit_that_matches_the_desktop_engine(context, page_origin, repo, tmp_path):
     seed = repo.files()
