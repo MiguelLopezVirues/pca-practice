@@ -1,5 +1,5 @@
 // GitHub Git Data API: read the needed files (cached by object id) and save files in one commit.
-import { cacheGet, cachePut } from "./store.js?v=2026-11-24.1";
+import { cacheGet, cachePut } from "./store.js?v=2026-11-24.2";
 
 const READ_PARALLEL = 8;
 
@@ -64,7 +64,7 @@ export class GitHub {
   }
 
   // dirs: directory paths whose files are wanted; files: single file paths. Returns {path: text}.
-  async read(rootTree, dirs, files) {
+  async read(rootTree, dirs, files, onProgress) {
     const out = {};
     const wanted = new Set(files);
     const want = (dir) => dirs.includes(dir) || [...wanted].some((f) => f.startsWith(dir + "/"))
@@ -81,10 +81,12 @@ export class GitHub {
     };
     await walk(rootTree, "");
     let next = 0;
+    let done = 0;
     const worker = async () => {
       while (next < blobs.length) {
         const [path, sha] = blobs[next++];
         out[path] = await this.blob(sha);
+        onProgress?.(++done, blobs.length);
       }
     };
     await Promise.all(Array.from({ length: Math.min(READ_PARALLEL, blobs.length) }, worker));

@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.1";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.1";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.1";
-import { inline, rich } from "./rich.js?v=2026-11-24.1";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.2";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.2";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.2";
+import { inline, rich } from "./rich.js?v=2026-11-24.2";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-24.1";
+const VERSION = "2026-11-24.2";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -116,9 +116,33 @@ function concernByPrefix() {
 }
 const topicTitle = (id) => topics().find((t) => t.topic === id)?.title || id;
 
+// While loading, the status line says which step is running and how long each step took.
+const loadStart = performance.now();
+const loadNotes = new Map();
+let loadLogged = false;
+let loadTimer;
+const secs = () => Math.round((performance.now() - loadStart) / 1000);
+function note(key, text) {
+  loadNotes.set(key, text);
+  renderLoading();
+}
+function renderLoading() {
+  if ($("status").dataset.state !== "loading") return clearInterval(loadTimer);
+  $("status").textContent = `Loading… ${[...loadNotes.values()].join(" · ")} (${secs()} s)`;
+}
+
 function setState(state, detail = "") {
   $("status").dataset.state = state;
   $("status").textContent = LABELS[state] + (detail ? `: ${detail}` : "");
+  if (state === "loading") {
+    clearInterval(loadTimer);
+    loadTimer = setInterval(renderLoading, 1000);
+    renderLoading();
+  } else if (!loadLogged && !["token-expired", "no-token"].includes(state)) {
+    loadLogged = true;
+    if (["ready", "done"].includes(state)) $("status").textContent += ` (${secs()} s)`;
+    console.info(`pca-practice load: ${state} after ${secs()} s; ${[...loadNotes.values()].join("; ")}`);
+  }
   if (["token-expired", "no-token"].includes(state)) openToken();
 }
 
@@ -154,7 +178,9 @@ function logLine(a) {
 // Run the engine on a repository version, then apply the answers still on the phone on top of it.
 async function loadBase(snap) {
   engine ??= await enginePromise;
+  const t = performance.now();
   engine.load(snap.files);
+  note("engine", `questions ready ${((performance.now() - t) / 1000).toFixed(1)} s`);
   base = snap;
   baseLog = snap.files[ANSWERS] || "";
   applied = [];
@@ -169,8 +195,11 @@ async function loadBase(snap) {
 }
 
 async function loadFromGitHub(gh) {
+  const t = performance.now();
+  note("github", "asking GitHub");
   const head = await gh.head();
-  const files = await gh.read(head.tree, READ_DIRS, READ_FILES);
+  const files = await gh.read(head.tree, READ_DIRS, READ_FILES, (done, total) => note("github", `GitHub ${done}/${total} files`));
+  note("github", `GitHub ${Object.keys(files).length} files ${((performance.now() - t) / 1000).toFixed(1)} s`);
   await loadBase({ repo: `${API}/${REPO}`, ...head, files });
   await snapshotPut(base);
 }
@@ -1219,7 +1248,9 @@ $("token-form").addEventListener("submit", async (ev) => {
   checkVersion();
   await keepStorage();
   await showPending();
+  note("python", "starting Python");
   enginePromise = Engine.start();
+  enginePromise.then(() => note("python", `Python started at ${secs()} s`));
   enginePromise.catch((e) => setState("error", `Python did not start (${e.message})`));
   if (!localStorage.getItem(TOKEN_KEY)) return setState("no-token");
   setState("loading");

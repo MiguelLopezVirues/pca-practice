@@ -22,6 +22,7 @@ The page contract these tests rely on:
 from __future__ import annotations
 
 import json
+import re
 import time
 from datetime import timedelta
 
@@ -94,6 +95,11 @@ def test_shows_first_flashcard_of_the_engine_queue(context, page_origin, repo, t
     assert page.locator("#status").get_attribute("data-state") == "ready"
     assert plain(page.locator("#card-front").inner_text()) == plain(front_of(seed, first))
     assert not page.locator("#card-back").is_visible()
+
+
+def test_ready_status_says_how_long_the_page_took_to_load(context, page_origin, repo):
+    page = open_page(context, page_origin, repo, practice=False)
+    assert re.fullmatch(r"Ready \(\d+ s\)", page.locator("#status").inner_text())
 
 
 # ---------- saving ----------
