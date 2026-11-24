@@ -1,5 +1,7 @@
 // GitHub Git Data API: read the needed files (cached by object id) and save files in one commit.
-import { cacheGet, cachePut } from "./store.js?v=2026-11-23.2";
+import { cacheGet, cachePut } from "./store.js?v=2026-11-24.1";
+
+const READ_PARALLEL = 8;
 
 export class Offline extends Error {}
 export class BadToken extends Error {}
@@ -67,14 +69,25 @@ export class GitHub {
     const wanted = new Set(files);
     const want = (dir) => dirs.includes(dir) || [...wanted].some((f) => f.startsWith(dir + "/"))
       || dirs.some((d) => d.startsWith(dir + "/"));
+    const blobs = [];
     const walk = async (sha, prefix) => {
+      const subtrees = [];
       for (const e of await this.tree(sha)) {
         const path = prefix ? `${prefix}/${e.path}` : e.path;
-        if (e.type === "tree" && want(path)) await walk(e.sha, path);
-        else if (e.type === "blob" && (wanted.has(path) || dirs.includes(prefix))) out[path] = await this.blob(e.sha);
+        if (e.type === "tree" && want(path)) subtrees.push(walk(e.sha, path));
+        else if (e.type === "blob" && (wanted.has(path) || dirs.includes(prefix))) blobs.push([path, e.sha]);
       }
+      await Promise.all(subtrees);
     };
     await walk(rootTree, "");
+    let next = 0;
+    const worker = async () => {
+      while (next < blobs.length) {
+        const [path, sha] = blobs[next++];
+        out[path] = await this.blob(sha);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(READ_PARALLEL, blobs.length) }, worker));
     return out;
   }
 

@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-23.2";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-23.2";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-23.2";
-import { inline, rich } from "./rich.js?v=2026-11-23.2";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.1";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.1";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.1";
+import { inline, rich } from "./rich.js?v=2026-11-24.1";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-23.2";
+const VERSION = "2026-11-24.1";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
