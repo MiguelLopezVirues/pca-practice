@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://api.github.com https://cdn.jsdelivr.net http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' blob:">
 <title>PCA practice</title>
-<link rel="stylesheet" href="style.css?v=2026-11-24.3">
-<script src="theme.js?v=2026-11-24.3"></script>
+<link rel="stylesheet" href="style.css?v=2026-11-25.1">
+<script src="theme.js?v=2026-11-25.1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -71,9 +71,9 @@
   </div>
   <div id="card" hidden>
     <div class="stage"><div id="card-flip" class="card surface">
-      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span></div><div id="card-front" class="q"></div><div id="choice-options" class="opts" hidden></div><p id="choice-why" class="choice-why" hidden></p></div>
+      <div class="face front"><div class="meta"><span data-icon="card"></span><span id="card-topic"></span><button id="card-copy" class="copy-btn" type="button" aria-label="Copy question"><span class="copy-ic" data-icon="copy"></span><span class="copy-label">Copy</span></button></div><div id="card-front" class="q"></div><div id="choice-options" class="opts" hidden></div><p id="choice-why" class="choice-why" hidden></p></div>
       <div id="card-back-face" class="face back">
-        <div class="meta"><span data-icon="check"></span>Answer</div>
+        <div class="meta"><span data-icon="check"></span><span>Answer</span><button id="card-copy-back" class="copy-btn" type="button" aria-label="Copy question"><span class="copy-ic" data-icon="copy"></span><span class="copy-label">Copy</span></button></div>
         <div id="card-back" class="a" hidden></div>
         <div id="card-points-box" class="pts" hidden>
           <h4>You knew it if you said each of these, in any words (tick them):</h4>
@@ -220,7 +220,7 @@
 <div id="preview" class="overlay" hidden>
   <div class="top"><button id="preview-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="eye"></span>Preview · nothing is recorded</span></div>
   <div class="card surface">
-    <div class="meta"><span id="preview-meta"></span></div>
+    <div class="meta"><span id="preview-meta"></span><button id="preview-copy" class="copy-btn" type="button" aria-label="Copy question"><span class="copy-ic" data-icon="copy"></span><span class="copy-label">Copy</span></button></div>
     <div id="preview-front" class="q"></div>
     <p id="preview-ai" class="hint-line" hidden>Answered in a Claude session, where the grader reads your answer.</p>
     <div id="preview-back-box" hidden>
@@ -235,7 +235,7 @@
 
 <!-- the explanation: the sheet blocks the key points quote, as a page to read -->
 <div id="explain-view" class="overlay reader" hidden>
-  <div class="top"><button id="explain-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="book"></span><span id="explain-title">Why</span></span></div>
+  <div class="top"><button id="explain-close" class="iconbtn" type="button" aria-label="Close" data-icon="close"></button><span class="banner"><span data-icon="book"></span><span id="explain-title">Why</span></span><button id="explain-copy" class="copy-btn" type="button" aria-label="Copy question"><span class="copy-ic" data-icon="copy"></span><span class="copy-label">Copy</span></button></div>
   <div id="explain" class="explain"></div>
   <div class="actions">
     <button id="explain-next" class="btn primary" type="button" hidden>Next card</button>
@@ -278,6 +278,6 @@
     <button id="filter-clear" class="btn quiet" type="button">Clear filters</button>
   </div>
 </div>
-<script type="module" src="app.js?v=2026-11-24.3"></script>
+<script type="module" src="app.js?v=2026-11-25.1"></script>
 </body>
 </html>

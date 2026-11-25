@@ -1,10 +1,10 @@
-import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-24.3";
-import { Engine, STATE_DIR } from "./engine.js?v=2026-11-24.3";
-import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-24.3";
-import { inline, rich } from "./rich.js?v=2026-11-24.3";
+import { GitHub, Offline, BadToken, Conflict } from "./github.js?v=2026-11-25.1";
+import { Engine, STATE_DIR } from "./engine.js?v=2026-11-25.1";
+import { outboxAll, outboxPut, outboxDelete, keepStorage, snapshotGet, snapshotPut } from "./store.js?v=2026-11-25.1";
+import { inline, rich } from "./rich.js?v=2026-11-25.1";
 
 // Bump with stamp.py on every release: the page compares it with version.json to offer a reload.
-const VERSION = "2026-11-24.3";
+const VERSION = "2026-11-25.1";
 
 const params = new URLSearchParams(location.search);
 const onThisComputer = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -55,6 +55,7 @@ const P = {
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4", filter: "M3 5h18l-7 8v6l-4 2v-8z",
   book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5",
   image: "M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01",
+  copy: "M9 9h10v10H9zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
 };
 const SVG = "http://www.w3.org/2000/svg";
 function ic(name) {
@@ -88,11 +89,45 @@ let idleTimer;
 let tab = "today";
 let session = { done: 0 };
 let explaining = false;  // a No or With effort answer is recorded and its explanation is open
+let explainRef = "";
+let previewRef = "";
 let explainIndex = null; // {files, items: Map(item id -> {note, blocks, diagrams})}
 const diagramUrls = new Map();
+const copyTimers = new WeakMap();
 const cardsView = { query: "", filter: "all", group: "concern", hiddenTopics: new Set(), hiddenChannels: new Set(), onlyDiagrams: false };
 const openGroups = new Set();  // folded groups the learner opened
 let viewTurn = null;  // the turn shown in Cards and Topics: "all" or 1-3; starts on the learner's current turn
+
+function cardReference(id, host) {
+  const text = [...host.children].map((c) => c.textContent.trim()).filter(Boolean).join("\n") || host.textContent.trim();
+  return text ? `${id}\n${text}` : id;
+}
+function resetCopy(btn) {
+  clearTimeout(copyTimers.get(btn));
+  delete btn.dataset.copied;
+  btn.querySelector(".copy-ic").replaceChildren(ic("copy"));
+  btn.querySelector(".copy-label").textContent = "Copy";
+}
+async function copyRef(btn, text) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.append(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  clearTimeout(copyTimers.get(btn));
+  btn.dataset.copied = "true";
+  btn.querySelector(".copy-ic").replaceChildren(ic("check"));
+  btn.querySelector(".copy-label").textContent = "Copied";
+  copyTimers.set(btn, setTimeout(() => resetCopy(btn), 1500));
+}
 
 const now = () => new Date().toISOString();
 const channelOf = (c) => (CHANNEL[c] ? c : "ai");
@@ -527,8 +562,10 @@ function renderExplain(host, item) {
 }
 
 // The explanation as a page of its own, over the card. While `explaining`, closing it moves to the next card.
-function openExplain(item, afterAnswer) {
+function openExplain(item, afterAnswer, ref = "") {
   if (!renderExplain($("explain"), item)) return false;
+  explainRef = ref || item.id;
+  resetCopy($("explain-copy"));
   $("explain-title").textContent = `Why · ${topicTitle(explanations().get(item.id).topic)}`;
   $("explain-next").hidden = !afterAnswer;
   $("explain-back").hidden = afterAnswer;
@@ -569,6 +606,8 @@ function pointLi(text) {
 function showCard() {
   const due = engine.flashcards(now());
   explaining = false;
+  resetCopy($("card-copy"));
+  resetCopy($("card-copy-back"));
   $("card-flip").classList.remove("flipped");
   $("card-back").hidden = true;
   $("ratings").hidden = true;
@@ -708,6 +747,7 @@ async function rate(rating) {
   const ticked = [...$("card-points").children].flatMap((li, n) => (li.getAttribute("aria-checked") === "true" ? [n] : []));
   if (ticked.length) answer.ticked = ticked;
   const { item } = current;
+  const ref = cardReference(current.id, $("card-front"));
   session.done += 1;
   await outboxPut(answer);
   // a reload from GitHub during the wait may already have applied it from the outbox; the card stays current meanwhile
@@ -718,7 +758,7 @@ async function rate(rating) {
   current = null;
   const last = !engine.flashcards(now()).length;
   // after No or With effort the explanation opens by itself; the next card waits for "Next card"
-  if ((rating === 1 || rating === 2) && openExplain(item, true)) {
+  if ((rating === 1 || rating === 2) && openExplain(item, true, ref)) {
     explaining = true;
     $("ratings").hidden = true;
     $("why").hidden = true;
@@ -1066,11 +1106,13 @@ function preview(id) {
     "", `**Why**: ${choice.why}`].join("\n");
   $("preview-meta").textContent = `${CHANNEL[channelOf(item.channel)][1]} · ${topicTitle(id.split(".")[0])}`;
   rich($("preview-front"), fronts[0]);
+  previewRef = cardReference(id, $("preview-front"));
+  resetCopy($("preview-copy"));
   rich($("preview-back"), flash ? item.card.back : choice ? choiceAnswer : item.model_answer || "");
   $("preview-back-label").textContent = flash || choice ? "Answer" : "Model answer";
   $("preview-points").replaceChildren(...(item.must || []).map((m) => pointLi(m.point)));
   $("preview-why").hidden = !explanations().has(id);
-  $("preview-why").onclick = () => openExplain(item, false);
+  $("preview-why").onclick = () => openExplain(item, false, previewRef);
   $("preview-back-box").hidden = true;
   $("preview-reveal").hidden = false;
   $("preview-ai").hidden = flash || Boolean(choice);
@@ -1165,7 +1207,11 @@ $("reveal").addEventListener("click", () => {
   $("reveal").hidden = true;
   $("why").hidden = !(current && explanations().has(current.id));
 });
-$("why").addEventListener("click", () => { if (current) openExplain(current.item, false); });
+$("why").addEventListener("click", () => { if (current) openExplain(current.item, false, cardReference(current.id, $("card-front"))); });
+$("card-copy").addEventListener("click", () => current && copyRef($("card-copy"), cardReference(current.id, $("card-front"))));
+$("card-copy-back").addEventListener("click", () => current && copyRef($("card-copy-back"), cardReference(current.id, $("card-front"))));
+$("preview-copy").addEventListener("click", () => copyRef($("preview-copy"), previewRef));
+$("explain-copy").addEventListener("click", () => copyRef($("explain-copy"), explainRef));
 $("explain-next").addEventListener("click", closeExplain);
 $("explain-back").addEventListener("click", closeExplain);
 $("explain-close").addEventListener("click", closeExplain);

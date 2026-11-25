@@ -121,7 +121,11 @@ body.practising .tabs { display:none; }
 .card .back { transform:rotateY(180deg); }
 .card.flipped { transform:rotateY(180deg); }
 .meta { display:flex; align-items:center; gap:.45rem; font-size:.78rem; color:var(--muted); margin-bottom:1rem; }
-.meta svg { width:1rem; height:1rem; }
+.meta svg { width:1rem; height:1rem; flex:none; }
+.copy-btn { margin-left:auto; display:inline-flex; align-items:center; gap:.3rem; border:1px solid var(--line); background:var(--soft); color:var(--muted); border-radius:999px; padding:.22rem .6rem; font-size:.74rem; font-weight:500; flex:none; }
+.copy-btn .copy-ic { display:grid; }
+.copy-btn svg { width:.9rem; height:.9rem; }
+.copy-btn[data-copied="true"] { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); font-weight:600; }
 .q { font-size:1.2rem; line-height:1.5; margin:0; }
 .a { margin:0 0 1rem; }
 .q p, .a p, .explain p { margin:0 0 .65rem; } .q p:last-child, .a p:last-child { margin-bottom:0; }
@@ -217,8 +221,9 @@ img.diagram { display:block; width:100%; height:auto; max-height:20rem; object-f
 /* preview overlay */
 .overlay { position:fixed; inset:0; background:var(--bg); max-width:30rem; margin:auto; padding:calc(env(safe-area-inset-top) + 1rem) 1.1rem 1rem; overflow:auto; z-index:5; }
 .overlay .card { display:block; min-height:12rem; }
-.banner { display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:var(--muted); background:var(--soft); border-radius:999px; padding:.35rem .8rem; }
-.banner svg { width:1rem; height:1rem; }
+.banner { display:flex; align-items:center; gap:.5rem; min-width:0; font-size:.8rem; color:var(--muted); background:var(--soft); border-radius:999px; padding:.35rem .8rem; }
+.banner svg { width:1rem; height:1rem; flex:none; }
+.banner #explain-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 [hidden] { display:none !important; }
 
 /* update banner */
